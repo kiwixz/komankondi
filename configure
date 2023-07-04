@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import argparse
+import shlex
+import shutil
+import subprocess
+from pathlib import Path
+
+
+def run(args):
+    print('>', shlex.join(str(a) for a in args))
+    r = subprocess.run(args).returncode
+    if r != 0:
+        exit(r)
+
+
+def configure_vcpkg(install_dir, toolchain):
+    vcpkg_dir = Path('vcpkg')
+    vcpkg_tool = vcpkg_dir / 'vcpkg'
+    if not vcpkg_tool.exists():
+        run([vcpkg_dir / 'bootstrap-vcpkg.sh', '-disableMetrics'])
+    run([vcpkg_tool, f'--x-install-root={install_dir}', 'install', '--no-print-usage'])
+
+    with open(toolchain, 'w') as f:
+        f.write('\n'.join([
+            '[properties]',
+            f"cmake_toolchain_file = '{Path('vcpkg/scripts/buildsystems/vcpkg.cmake').absolute()}'",
+            '[cmake]',
+            f"VCPKG_INSTALLED_DIR = '{install_dir.absolute()}'",
+        ]))
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--type', default='release', choices=['release', 'debug'])
+parser.add_argument('builddir', nargs='?', default='build', help='Build directory')
+
+args = parser.parse_args()
+build_dir = Path(args.builddir)
+build_type = args.type
+
+shutil.rmtree(build_dir, True)
+build_dir.mkdir()
+with open(build_dir / '.gitignore', 'w') as f:
+    f.write('*')
+
+vcpkg_toolchain = build_dir / 'meson-vcpkg.ini'
+configure_vcpkg(build_dir / 'vcpkg_installed', vcpkg_toolchain)
+
+meson_options = [
+    f'--native-file={vcpkg_toolchain}',
+    '--default-library=static',
+    '--prefer-static',
+    '--strip',
+    '-Dbackend_max_links=2',
+]
+cxxflags = [
+    '-march=x86-64-v2',
+    '-D_GLIBCXX_ASSERTIONS',
+    '-D_FORTIFY_SOURCE=3',
+    '-fstack-protector-strong',
+]
+
+if build_type == 'debug':
+    meson_options += ['-Doptimization=g']
+    cxxflags += ['-g3']
+else:
+    meson_options += ['--buildtype=release', '-Db_ndebug=true', '-Db_lto=true']
+    cxxflags += ['-Ofast']
+
+meson_options += ['-Dcpp_args=' + ' '.join(cxxflags)]
+run(['meson', 'setup'] + meson_options + [build_dir])

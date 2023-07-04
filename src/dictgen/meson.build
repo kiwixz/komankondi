@@ -1,0 +1,3 @@
+executable('dictgen', [
+        'main.cpp',
+    ])
