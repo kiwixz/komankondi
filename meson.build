@@ -25,10 +25,14 @@ if get_option('warning_level') == '3'
     ])
 endif
 
-add_project_dependencies(declare_dependency(
-        compile_args: cflags,
-        include_directories: ['src'],
-    ), language: 'cpp')
+if meson.version().version_compare('>=0.63.0')
+    add_project_dependencies(declare_dependency(
+            compile_args: cflags,
+            include_directories: ['src'],
+        ), language: 'cpp')
+else
+    add_project_arguments(cflags, '-Isrc', language: 'cpp')
+endif
 
 
 cli11 = dependency('CLI11')

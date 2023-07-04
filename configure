@@ -30,15 +30,48 @@ def configure_vcpkg(install_dir, toolchain):
         ]))
 
 
+def configure_meson(build_dir, meson_args, vcpkg_toolchain):
+    version_string = subprocess.run(['meson', '-v'], stdout=subprocess.PIPE, check=True, text=True).stdout
+    version = tuple(int(a) for a in version_string.split('.'))
+
+    options = [
+        f'--native-file={vcpkg_toolchain}',
+        '--default-library=static',
+        '--strip',
+        '-Dbackend_max_links=2',
+    ]
+
+    if version >= (0, 63, 0):
+        options += ['--prefer-static']
+
+    cxxflags = [
+        '-march=x86-64-v2',
+        '-D_GLIBCXX_ASSERTIONS',
+        '-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=3',
+        '-fstack-protector-strong',
+    ]
+
+    if build_type == 'debug':
+        options += ['-Doptimization=g']
+        cxxflags += ['-g3']
+    else:
+        options += ['--buildtype=release', '-Db_ndebug=true', '-Db_lto=true']
+        cxxflags += ['-Ofast']
+
+    options += ['-Dcpp_args=' + ' '.join(cxxflags)]
+    run(['meson', 'setup'] + options + meson_args + [build_dir])
+
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--type', default='release', choices=['release', 'debug'])
+parser.add_argument('--buildtype', default='release', choices=['release', 'debug'])
 parser.add_argument('builddir', nargs='?', default='build', help='Build directory')
 
-args = parser.parse_args()
+args, meson_args = parser.parse_known_args()
 build_dir = Path(args.builddir)
-build_type = args.type
+build_type = args.buildtype
 
 shutil.rmtree(build_dir, True)
+
 build_dir.mkdir()
 with open(build_dir / '.gitignore', 'w') as f:
     f.write('*')
@@ -46,26 +79,4 @@ with open(build_dir / '.gitignore', 'w') as f:
 vcpkg_toolchain = build_dir / 'meson-vcpkg.ini'
 configure_vcpkg(build_dir / 'vcpkg_installed', vcpkg_toolchain)
 
-meson_options = [
-    f'--native-file={vcpkg_toolchain}',
-    '--default-library=static',
-    '--prefer-static',
-    '--strip',
-    '-Dbackend_max_links=2',
-]
-cxxflags = [
-    '-march=x86-64-v2',
-    '-D_GLIBCXX_ASSERTIONS',
-    '-D_FORTIFY_SOURCE=3',
-    '-fstack-protector-strong',
-]
-
-if build_type == 'debug':
-    meson_options += ['-Doptimization=g']
-    cxxflags += ['-g3']
-else:
-    meson_options += ['--buildtype=release', '-Db_ndebug=true', '-Db_lto=true']
-    cxxflags += ['-Ofast']
-
-meson_options += ['-Dcpp_args=' + ' '.join(cxxflags)]
-run(['meson', 'setup'] + meson_options + [build_dir])
+configure_meson(build_dir, meson_args, vcpkg_toolchain)
