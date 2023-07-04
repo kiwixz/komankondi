@@ -1,0 +1,27 @@
+name: linux
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        buildtype: [release, debug]
+    steps:
+    - name: install
+      run: |
+        sudo apt-get update
+        sudo apt-get install meson
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - uses: actions/cache@v3
+      with:
+        key: vcpkg-${{hashFiles('.git/modules/vcpkg/HEAD')}}-${{hashFiles('vcpkg.json')}}
+        path: ~/.cache/vcpkg
+    - name: configure
+      run: ./configure --buildtype ${{matrix.buildtype}} --werror
+    - name: build
+      run: ninja -C build
+    - name: test
+      run: ninja -C build test
