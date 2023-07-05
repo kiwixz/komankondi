@@ -5,6 +5,7 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         buildtype: [release, debug]
     steps:
@@ -22,6 +23,14 @@ jobs:
     - name: configure
       run: ./configure --buildtype ${{matrix.buildtype}} --werror
     - name: build
-      run: ninja -C build
+      run: ninja -C build -k 0
     - name: test
       run: ninja -C build test
+    - name: format
+      run: ninja -C build clang-format-check
+    - name: tidy
+      run: |
+        tmp=$(mktemp -d)
+        echo -e '#!/bin/sh\necho exec /usr/bin/clang-tidy --warnings-as-errors=* --extra-arg=-Wno-unknown-warning-option "$@"' >$tmp/clang-tidy
+        chmod +x $tmp/clang-tidy
+        PATH=$tmp:$PATH ninja -C build clang-tidy

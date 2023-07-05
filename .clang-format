@@ -1,0 +1,51 @@
+AccessModifierOffset: -4
+AlignConsecutiveBitFields: Consecutive
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AlwaysBreakTemplateDeclarations: Yes
+BraceWrapping:
+  AfterControlStatement: MultiLine
+  BeforeCatch: true
+  BeforeElse: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList: AfterComma
+ColumnLimit: 0
+ConstructorInitializerIndentWidth: 8
+ContinuationIndentWidth: 8
+DeriveLineEnding: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: "^<[a-z_]+>$"
+    Priority: 100
+  - Regex: "^<[^>]+>$"
+    Priority: 200
+  - Regex: '^"[^"/]+/[^"]+"$'
+    Priority: 300
+    SortPriority: 310
+  - Regex: '^"[^"]+"$'
+    Priority: 300
+    SortPriority: 320
+IndentExternBlock: NoIndent
+IndentPPDirectives: AfterHash
+IndentWidth: 4
+MaxEmptyLinesToKeep: 2
+PointerAlignment: Left
+PPIndentWidth: 2
+QualifierAlignment: Left
+ReferenceAlignment: Pointer
+ReflowComments: false
+ShortNamespaceLines: 0
+SortIncludes: CaseInsensitive
+SpaceBeforeSquareBrackets: false
+SpacesBeforeTrailingComments: 2
+SpacesInContainerLiterals: false
+SpacesInSquareBrackets: false
+TabWidth: 4
