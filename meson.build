@@ -34,8 +34,12 @@ else
     add_project_arguments(cflags, '-Isrc', language: 'cpp')
 endif
 
+module_qt = import('qt5')
 
-cli11 = dependency('CLI11')
-fmt = dependency('fmt')
+qt = dependency('qt5', modules: ['Quick'], include_type: 'system')
+
+cli11 = dependency('CLI11', include_type: 'system')
+fmt = dependency('fmt', include_type: 'system')
 
 subdir('src/dictgen')
+subdir('src/qt')
