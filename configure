@@ -19,7 +19,7 @@ def configure_vcpkg(install_dir, toolchain):
     vcpkg_tool = vcpkg_dir / 'vcpkg'
     if not vcpkg_tool.exists():
         run([vcpkg_dir / 'bootstrap-vcpkg.sh', '-disableMetrics'])
-    run([vcpkg_tool, f'--x-install-root={install_dir}', 'install', '--no-print-usage'])
+    run([vcpkg_tool, f'--x-install-root={install_dir}', '--overlay-ports=vcpkg_ports', 'install', '--no-print-usage'])
 
     with open(toolchain, 'w') as f:
         f.write('\n'.join([

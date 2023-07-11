@@ -1,6 +1,8 @@
 {
     "dependencies": [
         "cli11",
-        "fmt"
+        "fmt",
+
+        "cpp-httplib"
     ]
 }

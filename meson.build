@@ -31,7 +31,7 @@ if meson.version().version_compare('>=0.63.0')
             include_directories: ['src'],
         ), language: 'cpp')
 else
-    add_project_arguments(cflags, '-Isrc', language: 'cpp')
+    add_project_arguments(cflags, '-I' + meson.project_source_root() / 'src', language: 'cpp')
 endif
 
 module_qt = import('qt5')
@@ -41,5 +41,8 @@ qt = dependency('qt5', modules: ['Quick'], include_type: 'system')
 cli11 = dependency('CLI11', include_type: 'system')
 fmt = dependency('fmt', include_type: 'system')
 
+httplib = dependency('httplib', include_type: 'system')
+
+subdir('src/utils')
 subdir('src/dictgen')
 subdir('src/qt')
