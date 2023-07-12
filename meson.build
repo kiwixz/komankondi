@@ -38,8 +38,10 @@ module_qt = import('qt5')
 
 qt = dependency('qt5', modules: ['Quick'], include_type: 'system')
 
+catch2 = dependency('Catch2', modules: 'Catch2::Catch2WithMain', include_type: 'system')
 cli11 = dependency('CLI11', include_type: 'system')
 fmt = dependency('fmt', include_type: 'system')
+pegtl = dependency('pegtl', modules: 'taocpp::pegtl', include_type: 'system')
 
 httplib = dependency('httplib', include_type: 'system')
 

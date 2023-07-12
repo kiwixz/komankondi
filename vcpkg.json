@@ -1,7 +1,9 @@
 {
     "dependencies": [
+        "catch2",
         "cli11",
         "fmt",
+        "pegtl",
 
         "cpp-httplib"
     ]
