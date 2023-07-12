@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        buildtype: [release, debug]
+        buildtype: [release, dev, debug]
     steps:
     - name: install
       run: |

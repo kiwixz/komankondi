@@ -44,26 +44,26 @@ def configure_meson(build_dir, meson_args, vcpkg_toolchain):
     if version >= (0, 63, 0):
         options += ['--prefer-static']
 
-    cxxflags = [
-        '-march=x86-64-v2',
-        '-D_GLIBCXX_ASSERTIONS',
-        '-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=3',
-        '-fstack-protector-strong',
-    ]
+    cxxflags = ['-march=x86-64-v2']
 
     if build_type == 'debug':
         options += ['-Doptimization=g']
         cxxflags += ['-g3']
     else:
-        options += ['--buildtype=release', '-Db_ndebug=true', '-Db_lto=true']
+        options += ['--buildtype=release']
         cxxflags += ['-Ofast']
 
+    if build_type == 'release':
+        options += ['-Db_ndebug=true', '-Db_lto=true']
+    else:
+        cxxflags += ['-D_GLIBCXX_ASSERTIONS', '-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=3', '-fstack-protector-strong']
+
     options += ['-Dcpp_args=' + ' '.join(cxxflags)]
-    run(['meson', 'setup'] + options + meson_args + [build_dir])
+    run(['meson', 'setup', *options, *meson_args, build_dir])
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--buildtype', default='release', choices=['release', 'debug'])
+parser.add_argument('--buildtype', default='release', choices=['release', 'dev', 'debug'])
 parser.add_argument('builddir', nargs='?', default='build', help='Build directory')
 
 args, meson_args = parser.parse_known_args()
