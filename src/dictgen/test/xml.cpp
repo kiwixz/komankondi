@@ -1,13 +1,12 @@
 #include "dictgen/xml.hpp"
 
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 #include <fmt/core.h>
-#include <range/v3/to_container.hpp>
-#include <range/v3/view/transform.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
 #include <tao/pegtl/memory_input.hpp>
 #include <tao/pegtl/parse.hpp>
