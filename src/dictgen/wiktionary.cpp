@@ -27,7 +27,12 @@ void dictgen_wiktionary(std::string_view language) {
                                   link = text;
                           });
 
-    fmt::println("'{}'", link);
+    size_t last_slash = link.find_last_of('/');
+    if (last_slash == std::string::npos)
+        throw Exception{"unexpected wiktionary dump link: '{}'", link};
+
+    std::string version = link.substr(last_slash + 1);
+    fmt::println("latest version is {}", version);
 }
 
 }  // namespace komankondi::dictgen
