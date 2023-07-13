@@ -4,6 +4,7 @@
         "cli11",
         "fmt",
         "pegtl",
+        "range-v3",
 
         "cpp-httplib"
     ]

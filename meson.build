@@ -42,6 +42,7 @@ catch2 = dependency('Catch2', modules: 'Catch2::Catch2WithMain', include_type: '
 cli11 = dependency('CLI11', include_type: 'system')
 fmt = dependency('fmt', include_type: 'system')
 pegtl = dependency('pegtl', modules: 'taocpp::pegtl', include_type: 'system')
+range_v3 = dependency('range-v3', include_type: 'system')
 
 httplib = dependency('httplib', include_type: 'system')
 

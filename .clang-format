@@ -10,9 +10,6 @@ BraceWrapping:
   AfterControlStatement: MultiLine
   BeforeCatch: true
   BeforeElse: true
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon

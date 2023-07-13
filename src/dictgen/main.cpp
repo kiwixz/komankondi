@@ -6,7 +6,8 @@
 
 #include "dictgen/wiktionary.hpp"
 
-int main(int argc, char** argv) {
+int main_(int argc, char** argv);
+int main_(int argc, char** argv) {
     using namespace komankondi::dictgen;
 
     CLI::App app;
@@ -27,4 +28,6 @@ int main(int argc, char** argv) {
         fmt::println(stderr, "could not recognize source '{}'", source);
         return 1;
     }
+
+    return 0;
 }
