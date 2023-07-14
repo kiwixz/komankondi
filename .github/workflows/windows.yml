@@ -1,9 +1,9 @@
-name: linux
+name: windows
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -11,8 +11,9 @@ jobs:
     steps:
     - name: install
       run: |
-        sudo apt-get update
-        sudo apt-get install meson qtdeclarative5-dev
+        pip install aqtinstall==3.1.* meson==1.1.*
+        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative
+        echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
       uses: actions/checkout@v3
       with:
@@ -21,22 +22,18 @@ jobs:
       uses: actions/cache@v3
       with:
         key: vcpkg_${{hashFiles('.git/modules/vcpkg/HEAD')}}_${{hashFiles('vcpkg.json')}}
-        path: ~/.cache/vcpkg
+        path: ~\AppData\Local\vcpkg
     - name: configure
-      run: ./configure --buildtype=${{matrix.buildtype}} --flags=-Werror
+      env:
+        CXX: clang++
+        CXX_LD: lld
+      run: python configure --buildtype=${{matrix.buildtype}} --flags=-Werror
     - name: build
       run: ninja -C build -k 0
     - name: test
       run: ninja -C build test
-    - name: format
-      run: ninja -C build clang-format-check
     - name: tidy
-      run: |
-        meson configure build -Dextra_warnings=false
-        tmp=$(mktemp -d)
-        echo -e '#!/bin/sh\necho exec /usr/bin/clang-tidy --warnings-as-errors=* "$@"' >$tmp/clang-tidy
-        chmod +x $tmp/clang-tidy
-        PATH="$tmp:$PATH" ninja -C build clang-tidy
+      run: ninja -C build clang-tidy
     - name: upload build
       if: always()
       uses: actions/upload-artifact@v3

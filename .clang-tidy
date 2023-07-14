@@ -31,6 +31,8 @@ Checks: |
   -cppcoreguidelines-pro-*,
   cppcoreguidelines-pro-type-cstyle-cast,
 
+  -misc-const-correctness,
+
   -modernize-use-auto,
   -modernize-use-nodiscard,
   -modernize-use-trailing-return-type,
@@ -45,6 +47,7 @@ Checks: |
   -readability-static-accessed-through-instance,
   -readability-uppercase-literal-suffix,
 
+  -bugprone-narrowing-conversions,
   -cert-con36-c,
   -cert-con54-cpp,
   -cert-dcl03-c,
@@ -60,6 +63,7 @@ Checks: |
   -cert-flp37-c,
   -cert-msc30-c,
   -cert-msc32-c,
+  -cert-msc54-cpp,
   -cert-oop11-cpp,
   -cert-oop54-cpp,
   -cert-pos44-c,
@@ -70,6 +74,7 @@ Checks: |
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-c-copy-assignment-signature,
   -cppcoreguidelines-explicit-virtual-functions,
+  -cppcoreguidelines-macro-to-enum,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -hicpp-avoid-c-arrays,
   -hicpp-braces-around-statements,

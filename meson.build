@@ -11,7 +11,7 @@ if get_option('debug')
     cflags += '-DDEBUG'
 endif
 
-if get_option('warning_level') == '3'
+if get_option('warning_level') == '3' and get_option('extra_warnings')
     cflags += meson.get_compiler('cpp').get_supported_arguments([
         '-Walloc-zero',
         '-Wcast-qual',
@@ -36,15 +36,13 @@ endif
 
 module_qt = import('qt5')
 
-qt = dependency('qt5', modules: ['Quick'], include_type: 'system')
-
 catch2 = dependency('Catch2', modules: 'Catch2::Catch2WithMain', include_type: 'system')
 cli11 = dependency('CLI11', include_type: 'system')
 fmt = dependency('fmt', include_type: 'system')
-pegtl = dependency('pegtl', modules: 'taocpp::pegtl', include_type: 'system')
-range_v3 = dependency('range-v3', include_type: 'system')
-
 httplib = dependency('httplib', include_type: 'system')
+pegtl = dependency('pegtl', modules: 'taocpp::pegtl', include_type: 'system')
+qt = dependency('qt5', modules: ['Core', 'Gui', 'Qml', 'Quick'], include_type: 'system')
+range_v3 = dependency('range-v3', include_type: 'system')
 
 subdir('src/utils')
 subdir('src/dictgen')

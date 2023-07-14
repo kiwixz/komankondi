@@ -11,6 +11,7 @@ namespace komankondi::dictgen::xml {
 namespace detail {
 
 using namespace tao::pegtl;
+using tao::pegtl::eof;
 
 template <typename... T>
 struct trim : seq<star<space>, T..., star<space>> {};
