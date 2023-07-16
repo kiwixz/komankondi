@@ -1,4 +1,4 @@
 utils = library('utils', [
-        '_.cpp',
+        'log.cpp',
     ],
     dependencies: [fmt])

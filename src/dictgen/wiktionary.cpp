@@ -1,17 +1,20 @@
 #include "dictgen/wiktionary.hpp"
 
-#include <cassert>
+#include <string>
 #include <string_view>
 
-#include <fmt/core.h>
 #include <httplib.h>
+#include <tao/pegtl/memory_input.hpp>
 
 #include "dictgen/xml.hpp"
 #include "utils/exception.hpp"
+#include "utils/log.hpp"
 
 namespace komankondi::dictgen {
 
 void dictgen_wiktionary(std::string_view language) {
+    log::info("generating {} dictionary from wiktionary", language);
+
     httplib::SSLClient http{"dumps.wikimedia.org"};
     constexpr std::string_view metadata_url = "/{language}wiktionary/latest/{language}wiktionary-latest-pages-articles.xml.bz2-rss.xml";
     httplib::Result res = http.Get(fmt::format(metadata_url, fmt::arg("language", language)));
@@ -19,6 +22,7 @@ void dictgen_wiktionary(std::string_view language) {
         throw Exception{"could not get wiktionary metadata: {}", httplib::to_string(res.error())};
     if (res->status != 200)
         throw Exception{"could not get wiktionary metadata: http status {} ({})", res->status, res->reason};
+    log::trace("wiktionary metadata:\n{}", res->body);
 
     std::string link;
     xml::actions::iterate(tao::pegtl::memory_input{res->body, ""},
@@ -32,7 +36,7 @@ void dictgen_wiktionary(std::string_view language) {
         throw Exception{"unexpected wiktionary dump link: '{}'", link};
 
     std::string version = link.substr(last_slash + 1);
-    fmt::println("latest version is {}", version);
+    log::info("latest wiktionary version is {}", version);
 }
 
 }  // namespace komankondi::dictgen
