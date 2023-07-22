@@ -1,8 +1,10 @@
 utils_deps = [
+    cli11,
     fmt,
 ]
 
 utils_lib = library('utils', [
+        'cli.cpp',
         'log.cpp',
     ],
     dependencies: utils_deps)

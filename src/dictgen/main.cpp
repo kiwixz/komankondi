@@ -1,32 +1,37 @@
 #include <string>
 #include <string_view>
 
-#include <CLI/CLI.hpp>
-#include <fmt/core.h>
-
+#include "dictgen/options.hpp"
 #include "dictgen/wiktionary.hpp"
+#include "utils/cli.hpp"
+#include "utils/exception.hpp"
+#include "utils/log.hpp"
 
 int main(int argc, char** argv) {
-    using namespace komankondi::dictgen;
+    using namespace komankondi;
+    using namespace dictgen;
 
-    CLI::App app;
+    try {
+        Options opt;
+        Cli cli;
+        cli.add_flag("--cache,!--no-cache", opt.cache, "Cache downloaded data");
 
-    bool no_cache = false;
-    app.add_flag("--no-cache", no_cache, "Do not cache downloaded data");
+        std::string source;
+        cli.add_option("source", source, "Where to extract the dictionary from")->required();
 
-    std::string source;
-    app.add_option("source", source)->required();
+        if (std::optional<bool> ok = cli.parse(argc, argv); ok)
+            return !*ok;
 
-    CLI11_PARSE(app, argc, argv);
-
-    constexpr std::string_view wiktionary_suffix = "wiktionary";
-    if (source.ends_with(wiktionary_suffix)) {
-        dictgen_wiktionary(std::string_view{source}.substr(0, source.length() - wiktionary_suffix.length()));
+        constexpr std::string_view wiktionary_suffix = "wiktionary";
+        if (source.ends_with(wiktionary_suffix)) {
+            dictgen_wiktionary(std::string_view{source}.substr(0, source.length() - wiktionary_suffix.length()), opt);
+        }
+        else {
+            throw Exception{"could not recognize source '{}'", source};
+        }
     }
-    else {
-        fmt::println(stderr, "could not recognize source '{}'", source);
+    catch (const std::runtime_error& ex) {
+        log::error("{}", ex.what());
         return 1;
     }
-
-    return 0;
 }
