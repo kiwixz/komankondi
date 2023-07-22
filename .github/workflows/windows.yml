@@ -21,7 +21,7 @@ jobs:
     - name: setup vcpkg cache
       uses: actions/cache@v3
       with:
-        key: vcpkg_${{hashFiles('.git/modules/vcpkg/HEAD')}}_${{hashFiles('vcpkg.json')}}
+        key: vcpkg_${{hashFiles('vcpkg.json')}}_${{hashFiles('.git/modules/vcpkg/HEAD')}}_${{hashFiles('vcpkg_ports/**')}}
         path: ~\AppData\Local\vcpkg
     - name: configure
       env:
