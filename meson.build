@@ -45,5 +45,6 @@ qt = dependency('qt5', modules: ['Core', 'Gui', 'Qml', 'Quick'], include_type: '
 range_v3 = dependency('range-v3', include_type: 'system')
 
 subdir('src/utils')
+
 subdir('src/dictgen')
 subdir('src/qt')

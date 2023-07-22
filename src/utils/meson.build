@@ -1,4 +1,10 @@
-utils = library('utils', [
+utils_deps = [
+    fmt,
+]
+
+utils_lib = library('utils', [
         'log.cpp',
     ],
-    dependencies: [fmt])
+    dependencies: utils_deps)
+
+utils = declare_dependency(dependencies: utils_deps, link_with: utils_lib)

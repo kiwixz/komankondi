@@ -6,8 +6,7 @@
 
 #include "dictgen/wiktionary.hpp"
 
-int main_(int argc, char** argv);
-int main_(int argc, char** argv) {
+int main(int argc, char** argv) {
     using namespace komankondi::dictgen;
 
     CLI::App app;

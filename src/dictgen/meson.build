@@ -1,14 +1,21 @@
-dictgen = static_library('dictgen', [
-        'main.cpp',
+dictgen_deps = [
+    utils,
+    
+    fmt,
+    httplib,
+    pegtl,
+    range_v3,
+]
+
+dictgen_lib = static_library('dictgen', [
         'wiktionary.cpp',
     ],
-    link_with: [utils],
-    dependencies: [fmt, httplib, pegtl, range_v3])
+    dependencies: dictgen_deps)
 
-executable('dictgen', '../main.cpp', link_with: dictgen)
+executable('dictgen', 'main.cpp', dependencies: dictgen_deps, link_with: dictgen_lib)
 
 test('dictgen', executable('dictgen-test', [
         'test/xml.cpp',
     ],
-    link_with: dictgen,
-    dependencies: catch2))
+    dependencies: [dictgen_deps, catch2],
+    link_with: dictgen_lib))
