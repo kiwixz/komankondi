@@ -1,6 +1,7 @@
 dictgen_deps = [
     utils,
-    
+
+    cli11,
     fmt,
     httplib,
     pegtl,

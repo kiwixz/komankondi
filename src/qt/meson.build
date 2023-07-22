@@ -1,6 +1,4 @@
 qt_deps = [
-    utils,
-
     qt,
 ]
 
