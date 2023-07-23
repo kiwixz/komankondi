@@ -11,6 +11,10 @@ if get_option('debug')
     cflags += '-DDEBUG'
 endif
 
+if build_machine.system() == 'windows'
+    cflags += '-D_CRT_SECURE_NO_WARNINGS'
+endif
+
 if get_option('warning_level') == '3' and get_option('extra_warnings')
     cflags += meson.get_compiler('cpp').get_supported_arguments([
         '-Walloc-zero',
