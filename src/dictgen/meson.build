@@ -9,6 +9,7 @@ dictgen_deps = [
 ]
 
 dictgen_lib = static_library('dictgen', [
+        'digest.cpp',
         'wiktionary.cpp',
     ],
     dependencies: dictgen_deps)

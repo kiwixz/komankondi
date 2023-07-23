@@ -5,6 +5,7 @@ utils_deps = [
 
 utils_lib = library('utils', [
         'cli.cpp',
+        'hex.cpp',
         'log.cpp',
         'path.cpp',
     ],

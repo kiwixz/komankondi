@@ -31,6 +31,8 @@ Checks: |
   -cppcoreguidelines-pro-*,
   cppcoreguidelines-pro-type-cstyle-cast,
 
+  -hicpp-signed-bitwise,
+
   -misc-const-correctness,
 
   -modernize-use-auto,

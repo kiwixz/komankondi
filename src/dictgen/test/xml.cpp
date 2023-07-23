@@ -17,14 +17,14 @@ namespace {
 void parse(std::string_view document, std::initializer_list<std::pair<std::string_view, std::string_view>> expected) {
     CAPTURE(document);
     auto it = expected.begin();
-    xml::actions::iterate(tao::pegtl::memory_input{document, ""},
-                          [&](std::string&& path, std::string&& text) {
-                              INFO(fmt::format("element {}", it - expected.begin()));
-                              REQUIRE(it != expected.end());
-                              CHECK(path == it->first);
-                              CHECK(text == it->second);
-                              ++it;
-                          });
+    xml::iterate(tao::pegtl::memory_input{document, ""},
+                 [&](std::string&& path, std::string&& text) {
+                     INFO(fmt::format("element {}", it - expected.begin()));
+                     REQUIRE(it != expected.end());
+                     CHECK(path == it->first);
+                     CHECK(text == it->second);
+                     ++it;
+                 });
     CHECK(it == expected.end());
 }
 

@@ -8,7 +8,7 @@
 #include <tao/pegtl/rules.hpp>
 
 namespace komankondi::dictgen::xml {
-namespace detail {
+namespace detail::using_pegtl {
 
 using namespace tao::pegtl;
 using tao::pegtl::eof;
@@ -52,12 +52,11 @@ struct Document : seq<trim<opt<trimr<Declaration>>,
                       eof> {};
 
 }  // namespace grammar
-}  // namespace detail
+}  // namespace detail::using_pegtl
 
-using namespace detail::grammar;
+using namespace detail::using_pegtl::grammar;
 
 
-namespace actions {
 namespace detail {
 
 template <typename Predicate>
@@ -124,5 +123,4 @@ void iterate(Input&& in, Predicate&& pred) {
                                                                    detail::IterateState{std::forward<Predicate>(pred)});
 }
 
-}  // namespace actions
 }  // namespace komankondi::dictgen::xml

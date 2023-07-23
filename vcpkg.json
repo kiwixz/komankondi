@@ -1,11 +1,12 @@
 {
     "dependencies": [
+        "bzip2",
         "catch2",
         "cli11",
+        "cpp-httplib",
         "fmt",
+        "openssl",
         "pegtl",
-        "range-v3",
-
-        "cpp-httplib"
+        "range-v3"
     ]
 }
