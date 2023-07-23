@@ -6,6 +6,7 @@ utils_deps = [
 utils_lib = library('utils', [
         'cli.cpp',
         'log.cpp',
+        'path.cpp',
     ],
     dependencies: utils_deps)
 

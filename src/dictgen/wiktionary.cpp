@@ -1,8 +1,10 @@
 #include "wiktionary.hpp"
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 
+#include <fmt/std.h>
 #include <httplib.h>
 #include <tao/pegtl/memory_input.hpp>
 
@@ -10,12 +12,11 @@
 #include "dictgen/xml.hpp"
 #include "utils/exception.hpp"
 #include "utils/log.hpp"
+#include "utils/path.hpp"
 
 namespace komankondi::dictgen {
 
 void dictgen_wiktionary(std::string_view language, const Options& opt) {
-    log::dev("cache is {}", opt.cache);
-
     log::info("generating {} dictionary from wiktionary", language);
 
     httplib::SSLClient http{"dumps.wikimedia.org"};
@@ -40,6 +41,12 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
     std::string version = link.substr(last_slash + 1);
     log::info("latest wiktionary version is {}", version);
+
+    std::filesystem::path cache_path = get_cache_directory() / fmt::format("wiktionary_{}_{}.xml.bz2", language, version);
+    log::debug("cache path is {}", cache_path);
+    if (opt.cache && std::filesystem::exists(cache_path)) {
+        log::info("found cached data");
+    }
 }
 
 }  // namespace komankondi::dictgen
