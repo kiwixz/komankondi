@@ -20,7 +20,7 @@ jobs:
     - name: setup vcpkg cache
       uses: actions/cache@v3
       with:
-        key: vcpkg_${{hashFiles('vcpkg.json')}}_${{hashFiles('.git/modules/vcpkg/HEAD')}}_${{hashFiles('vcpkg_ports/**')}}
+        key: vcpkg_linux_${{hashFiles('vcpkg.json')}}_${{hashFiles('.git/modules/vcpkg/HEAD')}}_${{hashFiles('vcpkg_ports/**')}}
         path: ~/.cache/vcpkg
     - name: configure
       run: ./configure --buildtype=${{matrix.buildtype}} --flags=-Werror
@@ -63,7 +63,7 @@ jobs:
     - name: setup vcpkg cache
       uses: actions/cache@v3
       with:
-        key: vcpkg_${{hashFiles('vcpkg.json')}}_${{hashFiles('.git/modules/vcpkg/HEAD')}}_${{hashFiles('vcpkg_ports/**')}}
+        key: vcpkg_windows_${{hashFiles('vcpkg.json')}}_${{hashFiles('.git/modules/vcpkg/HEAD')}}_${{hashFiles('vcpkg_ports/**')}}
         path: ~\AppData\Local\vcpkg
     - name: configure
       env:
