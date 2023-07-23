@@ -38,7 +38,7 @@ jobs:
         chmod +x $tmp/clang-tidy
         PATH="$tmp:$PATH" ninja -C build clang-tidy
     - name: upload build
-      if: always()
+      if: failure()
       uses: actions/upload-artifact@v3
       with:
         name: build (${{matrix.buildtype}})
@@ -77,7 +77,7 @@ jobs:
     - name: tidy
       run: ninja -C build clang-tidy
     - name: upload build
-      if: always()
+      if: failure()
       uses: actions/upload-artifact@v3
       with:
         name: build (${{matrix.buildtype}})
