@@ -1,5 +1,6 @@
 #include "wiktionary.hpp"
 
+#include <chrono>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -55,29 +56,66 @@ void process(std::span<const std::byte> data) {
 void dictgen_wiktionary(std::string_view language, const Options& opt) {
     log::info("generating {} dictionary from wiktionary", language);
 
-    std::string dump_base = fmt::format(dump_base_fmt, fmt::arg("lang", language));
-
     httplib::SSLClient http{"dumps.wikimedia.org"};
 
-    std::vector<std::byte> latest_sha1 = fetch_latest_sha1(dump_base, http);
-    log::dev("latest data should have the following sha1: {}", to_hex(latest_sha1));
-
-    Digest file_sha1{"sha1"};
+    std::string dump_base = fmt::format(dump_base_fmt, fmt::arg("lang", language));
 
     std::filesystem::path cache_path = get_cache_directory() / fmt::format("wiktionary_{}.xml.bz2", language);
     log::debug("cache path is {}", cache_path);
-    if (opt.cache && std::filesystem::exists(cache_path)) {
-        log::info("found cached data");
+
+    std::string tmp_file_name = fmt::format("komankondi_{}", std::chrono::steady_clock::now().time_since_epoch().count());
+    std::filesystem::path tmp_file_path = std::filesystem::temp_directory_path() / tmp_file_name;
+    log::debug("temporary cache path is {}", tmp_file_path);
+
+    std::ofstream tmp_file;
+    if (opt.cache) {
+        if (std::filesystem::exists(cache_path)) {
+            log::info("found cached data");
+            std::vector<std::byte> latest_sha1 = fetch_latest_sha1(dump_base, http);
+            log::debug("latest data have the following sha1: {}", to_hex(latest_sha1));
+
+            Digest digest{"sha1"};
+            std::ifstream cache_file{cache_path, std::ios::binary};
+            if (cache_file) {
+                std::vector<std::byte> buffer;
+                buffer.resize(2000000);
+                while (cache_file) {
+                    cache_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+                    digest.update({buffer.data(), static_cast<size_t>(cache_file.gcount())});
+                }
+
+                std::vector<std::byte> cache_sha1 = digest.finish();
+                log::debug("cached data have the following sha1: {}", to_hex(cache_sha1));
+                if (cache_sha1 == latest_sha1) {
+                    log::info("validated cached data");
+                    // process it now
+                    return;
+                }
+
+                log::info("cached data is stale");
+            }
+            else {
+                log::warn("found cached data but could not open it");
+            }
+        }
+
+        tmp_file = std::ofstream{tmp_file_path, std::ios::binary};
     }
 
     httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
+        if (tmp_file)
+            tmp_file.write(ptr, size);
         std::span<const std::byte> data = std::as_bytes(std::span{ptr, size});
-        file_sha1.update(data);
         process(data);
         return true;
     });
 
-    log::dev("file hash {}", to_hex(file_sha1.finish()));
+    if (tmp_file) {
+        tmp_file.close();
+        std::filesystem::create_directories(cache_path.parent_path());
+        std::filesystem::rename(tmp_file_path, cache_path);
+        log::info("successfully saved cached data");
+    }
 }
 
 }  // namespace komankondi::dictgen
