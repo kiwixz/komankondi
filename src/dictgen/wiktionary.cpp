@@ -15,6 +15,7 @@
 
 #include "dictgen/digest.hpp"
 #include "dictgen/options.hpp"
+#include "dictgen/pipeline.hpp"
 #include "dictgen/xml.hpp"
 #include "utils/exception.hpp"
 #include "utils/hex.hpp"
@@ -46,10 +47,6 @@ std::vector<std::byte> fetch_latest_sha1(std::string_view dump_base, httplib::SS
     return from_hex(std::string_view{&*hex.begin(), static_cast<size_t>(ranges::distance(hex))});
 }
 
-void process(std::span<const std::byte> data) {
-    (void)data;
-}
-
 }  // namespace
 
 
@@ -57,63 +54,92 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     log::info("generating {} dictionary from wiktionary", language);
 
     httplib::SSLClient http{"dumps.wikimedia.org"};
-
     std::string dump_base = fmt::format(dump_base_fmt, fmt::arg("lang", language));
 
-    std::filesystem::path cache_path = get_cache_directory() / fmt::format("wiktionary_{}.xml.bz2", language);
-    log::debug("cache path is {}", cache_path);
+    std::vector<std::byte> latest_sha1 = fetch_latest_sha1(dump_base, http);
+    log::debug("latest data have the following sha1: {}", to_hex(latest_sha1));
 
-    std::string tmp_file_name = fmt::format("komankondi_{}", std::chrono::steady_clock::now().time_since_epoch().count());
-    std::filesystem::path tmp_file_path = std::filesystem::temp_directory_path() / tmp_file_name;
-    log::debug("temporary cache path is {}", tmp_file_path);
+    Digest digest{"sha1"};
+    Pipeline pipeline{[&](std::span<const std::byte> data) {
+                          digest.update(data);
+                          return data;
+                      },
+                      [&](std::span<const std::byte> data) {
+                          log::dev("processing {} bytes", data.size());
+                      }};
 
-    std::ofstream tmp_file;
-    if (opt.cache) {
-        if (std::filesystem::exists(cache_path)) {
-            log::info("found cached data");
-            std::vector<std::byte> latest_sha1 = fetch_latest_sha1(dump_base, http);
-            log::debug("latest data have the following sha1: {}", to_hex(latest_sha1));
-
-            Digest digest{"sha1"};
-            std::ifstream cache_file{cache_path, std::ios::binary};
-            if (cache_file) {
-                std::vector<std::byte> buffer;
-                buffer.resize(2000000);
-                while (cache_file) {
-                    cache_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-                    digest.update({buffer.data(), static_cast<size_t>(cache_file.gcount())});
-                }
-
-                std::vector<std::byte> cache_sha1 = digest.finish();
-                log::debug("cached data have the following sha1: {}", to_hex(cache_sha1));
-                if (cache_sha1 == latest_sha1) {
-                    log::info("validated cached data");
-                    // process it now
-                    return;
-                }
-
-                log::info("cached data is stale");
-            }
-            else {
-                log::warn("found cached data but could not open it");
-            }
-        }
-
-        tmp_file = std::ofstream{tmp_file_path, std::ios::binary};
+    if (!opt.cache) {
+        httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
+            pipeline.in(std::as_bytes(std::span{ptr, size}));
+            return true;
+        });
+        return;
     }
 
+    std::string cache_name = fmt::format("wiktionary_{}.xml.bz2", language);
+    std::filesystem::path cache_path = get_cache_directory() / cache_name;
+    std::filesystem::path cache_sha1_path = get_cache_directory() / fmt::format("{}.sha1", cache_name);
+    log::debug("cache path is {}", cache_path);
+
+    if (std::filesystem::exists(cache_path)) {
+        log::info("found cached data");
+
+        std::ifstream cache_sha1_file{cache_sha1_path};
+        if (cache_sha1_file) {
+            std::vector<std::byte> cache_sha1;
+            cache_sha1.resize(EVP_MAX_MD_SIZE);
+            cache_sha1_file.read(reinterpret_cast<char*>(cache_sha1.data()), cache_sha1.size());
+            cache_sha1.resize(cache_sha1_file.gcount());
+            cache_sha1_file.close();
+
+            log::debug("cached data have the following sha1: {}", to_hex(cache_sha1));
+            if (cache_sha1 == latest_sha1) {
+                std::ifstream cache_file{cache_path, std::ios::binary};
+                if (cache_file) {
+                    std::vector<std::byte> buffer;
+                    buffer.resize(2000000);
+                    while (cache_file) {
+                        cache_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+                        pipeline.in(std::as_bytes(std::span{buffer.data(), static_cast<size_t>(cache_file.gcount())}));
+                    }
+                    return;
+                }
+                log::warn("found cached data but could not open it");
+            }
+            log::info("cached data is stale");
+        }
+        else {
+            log::warn("found cached data but could not open its digest");
+        }
+    }
+
+    std::string tmp_cache_name = fmt::format("komankondi_{}", std::chrono::steady_clock::now().time_since_epoch().count());
+    std::filesystem::path tmp_cache_path = std::filesystem::temp_directory_path() / tmp_cache_name;
+    log::debug("temporary cache path is {}", tmp_cache_path);
+    std::ofstream tmp_cache_file = std::ofstream{tmp_cache_path, std::ios::binary};
+    if (!tmp_cache_file)
+        log::warn("could not open the file to cache data");
+
     httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
-        if (tmp_file)
-            tmp_file.write(ptr, size);
-        std::span<const std::byte> data = std::as_bytes(std::span{ptr, size});
-        process(data);
+        if (tmp_cache_file)
+            tmp_cache_file.write(ptr, size);
+        pipeline.in(std::as_bytes(std::span{ptr, size}));
         return true;
     });
 
-    if (tmp_file) {
-        tmp_file.close();
+    if (tmp_cache_file) {
+        tmp_cache_file.close();
         std::filesystem::create_directories(cache_path.parent_path());
-        std::filesystem::rename(tmp_file_path, cache_path);
+        std::filesystem::rename(tmp_cache_path, cache_path);
+
+        std::ofstream cache_sha1_file{cache_sha1_path};
+        if (!cache_sha1_file) {
+            log::warn("could not open the file to cache digest");
+            return;
+        }
+        cache_sha1_file.write(reinterpret_cast<char*>(latest_sha1.data()), latest_sha1.size());
+        cache_sha1_file.close();
+
         log::info("successfully saved cached data");
     }
 }

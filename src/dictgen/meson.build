@@ -17,6 +17,7 @@ dictgen_lib = static_library('dictgen', [
 executable('dictgen', 'main.cpp', dependencies: dictgen_deps, link_with: dictgen_lib)
 
 test('dictgen', executable('dictgen-test', [
+        'test/pipeline.cpp',
         'test/xml.cpp',
     ],
     dependencies: [dictgen_deps, catch2],

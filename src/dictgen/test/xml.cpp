@@ -31,15 +31,11 @@ void parse(std::string_view document, std::initializer_list<std::pair<std::strin
 }  // namespace
 
 
-TEST_CASE("analyze") {
+TEST_CASE("xml") {
     CHECK(tao::pegtl::analyze<xml::Document>() == 0);
-}
 
-TEST_CASE("one") {
     parse("<one></one>", {{"one", ""}});
-}
 
-TEST_CASE("simple") {
     parse(R"(
         <?xml version="1.0"?>
         <root>
