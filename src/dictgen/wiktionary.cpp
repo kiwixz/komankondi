@@ -1,13 +1,16 @@
 #include "wiktionary.hpp"
 
+#include <array>
 #include <chrono>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 
 #include <fmt/std.h>
 #include <httplib.h>
 #include <range/v3/algorithm/ends_with.hpp>
+#include <range/v3/algorithm/equal.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/view/delimit.hpp>
 #include <range/v3/view/split.hpp>
@@ -47,6 +50,41 @@ std::vector<std::byte> fetch_latest_sha1(std::string_view dump_base, httplib::SS
     return from_hex(std::string_view{&*hex.begin(), static_cast<size_t>(ranges::distance(hex))});
 }
 
+std::optional<std::ifstream> open_cache(const std::filesystem::path& path, const std::filesystem::path& sha1_path, std::span<const std::byte> latest_sha1) {
+    if (!std::filesystem::exists(path)) {
+        log::debug("cached data not found");
+        return {};
+    }
+
+    log::info("found cached data");
+
+    std::ifstream cache_sha1_file{sha1_path};
+    if (!cache_sha1_file) {
+        log::warn("found cached data but could not open its digest");
+        return {};
+    }
+
+    std::span<const std::byte> cache_sha1 = [&] {
+        std::array<std::byte, EVP_MAX_MD_SIZE> buffer;
+        cache_sha1_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+        return std::span{buffer.data(), static_cast<size_t>(cache_sha1_file.gcount())};
+    }();
+    log::debug("cached data have the following sha1: {}", to_hex(cache_sha1));
+
+    if (!ranges::equal(cache_sha1, latest_sha1)) {
+        log::info("cached data is stale");
+        return {};
+    }
+
+    std::ifstream r{path, std::ios::binary};
+    if (!r) {
+        log::warn("found fresh cached data but could not open it");
+        return {};
+    }
+
+    return r;
+}
+
 }  // namespace
 
 
@@ -81,36 +119,14 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     std::filesystem::path cache_sha1_path = get_cache_directory() / fmt::format("{}.sha1", cache_name);
     log::debug("cache path is {}", cache_path);
 
-    if (std::filesystem::exists(cache_path)) {
-        log::info("found cached data");
-
-        std::ifstream cache_sha1_file{cache_sha1_path};
-        if (cache_sha1_file) {
-            std::vector<std::byte> cache_sha1;
-            cache_sha1.resize(EVP_MAX_MD_SIZE);
-            cache_sha1_file.read(reinterpret_cast<char*>(cache_sha1.data()), cache_sha1.size());
-            cache_sha1.resize(cache_sha1_file.gcount());
-            cache_sha1_file.close();
-
-            log::debug("cached data have the following sha1: {}", to_hex(cache_sha1));
-            if (cache_sha1 == latest_sha1) {
-                std::ifstream cache_file{cache_path, std::ios::binary};
-                if (cache_file) {
-                    std::vector<std::byte> buffer;
-                    buffer.resize(2000000);
-                    while (cache_file) {
-                        cache_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-                        pipeline.in(std::as_bytes(std::span{buffer.data(), static_cast<size_t>(cache_file.gcount())}));
-                    }
-                    return;
-                }
-                log::warn("found cached data but could not open it");
-            }
-            log::info("cached data is stale");
+    if (std::optional<std::ifstream> cache_file = open_cache(cache_path, cache_sha1_path, latest_sha1); cache_file) {
+        std::vector<std::byte> buffer;
+        buffer.resize(2000000);
+        while (*cache_file) {
+            cache_file->read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+            pipeline.in(std::as_bytes(std::span{buffer.data(), static_cast<size_t>(cache_file->gcount())}));
         }
-        else {
-            log::warn("found cached data but could not open its digest");
-        }
+        return;
     }
 
     std::string tmp_cache_name = fmt::format("komankondi_{}", std::chrono::steady_clock::now().time_since_epoch().count());
@@ -118,7 +134,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     log::debug("temporary cache path is {}", tmp_cache_path);
     std::ofstream tmp_cache_file = std::ofstream{tmp_cache_path, std::ios::binary};
     if (!tmp_cache_file)
-        log::warn("could not open the file to cache data");
+        log::warn("could not open the file to cached data");
 
     httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
         if (tmp_cache_file)
@@ -134,7 +150,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
         std::ofstream cache_sha1_file{cache_sha1_path};
         if (!cache_sha1_file) {
-            log::warn("could not open the file to cache digest");
+            log::warn("could not open the file to cached data digest");
             return;
         }
         cache_sha1_file.write(reinterpret_cast<char*>(latest_sha1.data()), latest_sha1.size());
