@@ -1,16 +1,13 @@
 #include "wiktionary.hpp"
 
-#include <array>
-#include <chrono>
-#include <filesystem>
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/std.h>
 #include <httplib.h>
 #include <range/v3/algorithm/ends_with.hpp>
-#include <range/v3/algorithm/equal.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/delimit.hpp>
