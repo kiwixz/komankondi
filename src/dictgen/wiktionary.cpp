@@ -64,11 +64,10 @@ std::optional<std::ifstream> open_cache(const std::filesystem::path& path, const
         return {};
     }
 
-    std::span<const std::byte> cache_sha1 = [&] {
-        std::array<std::byte, EVP_MAX_MD_SIZE> buffer;
-        cache_sha1_file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-        return std::span{buffer.data(), static_cast<size_t>(cache_sha1_file.gcount())};
-    }();
+    std::vector<std::byte> cache_sha1;
+    cache_sha1.resize(EVP_MAX_MD_SIZE);
+    cache_sha1_file.read(reinterpret_cast<char*>(cache_sha1.data()), cache_sha1.size());
+    cache_sha1.resize(cache_sha1_file.gcount());
     log::debug("cached data have the following sha1: {}", to_hex(cache_sha1));
 
     if (!ranges::equal(cache_sha1, latest_sha1)) {
