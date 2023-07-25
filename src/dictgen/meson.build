@@ -1,6 +1,7 @@
 dictgen_deps = [
     utils,
 
+    bzip2,
     cli11,
     fmt,
     httplib,
@@ -9,6 +10,7 @@ dictgen_deps = [
 ]
 
 dictgen_lib = static_library('dictgen', [
+        'bzip.cpp',
         'hasher.cpp',
         'wiktionary.cpp',
     ],

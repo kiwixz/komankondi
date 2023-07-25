@@ -105,7 +105,7 @@ struct Iterate<EndTagName> {
     static void apply([[maybe_unused]] const Input& in, State& s) {
         assert(!s.stack.empty());
         assert(in.string_view() == s.stack.back().name);
-        s.predicate(s.stack | ranges::views::transform([](const auto& el) { return el.name; })
+        s.predicate(s.stack | ranges::views::transform([](const auto& el) -> std::string_view { return el.name; })
                             | ranges::views::join('/')
                             | ranges::to<std::string>,
                     std::move(s.stack.back().text));

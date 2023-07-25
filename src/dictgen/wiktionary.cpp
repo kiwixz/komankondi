@@ -12,10 +12,12 @@
 #include <range/v3/algorithm/ends_with.hpp>
 #include <range/v3/algorithm/equal.hpp>
 #include <range/v3/algorithm/find_if.hpp>
+#include <range/v3/range/conversion.hpp>
 #include <range/v3/view/delimit.hpp>
 #include <range/v3/view/split.hpp>
 #include <tao/pegtl/memory_input.hpp>
 
+#include "dictgen/bzip.hpp"
 #include "dictgen/hasher.hpp"
 #include "dictgen/options.hpp"
 #include "dictgen/pipeline.hpp"
@@ -94,20 +96,24 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     std::string dump_base = fmt::format(dump_base_fmt, fmt::arg("lang", language));
 
     std::vector<std::byte> latest_sha1 = fetch_latest_sha1(dump_base, http);
-    log::debug("latest data have the following sha1: {}", to_hex(latest_sha1));
+    log::debug("latest data sha1 is {}", to_hex(latest_sha1));
 
-    Hasher digest{"sha1"};
-    Pipeline pipeline{[&](std::span<const std::byte> data) {
-                          digest.update(data);
-                          return data;
-                      },
-                      [&](std::span<const std::byte> data) {
-                          log::dev("processing {} bytes", data.size());
-                      }};
+    Hasher hasher{"sha1"};
+    BzipDecompressor unbzip;
+
+    Pipe pipeline = make_pipeline<std::vector<std::byte>>(
+            [&](std::vector<std::byte> data) {
+                hasher.update(data);
+                return data;
+            },
+            [&](std::span<const std::byte> data) { return unbzip(data); },
+            [&](std::span<const std::byte> data) {
+                log::dev("processing {} bytes", data.size());
+            });
 
     if (!opt.cache) {
         httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
-            pipeline.in(std::as_bytes(std::span{ptr, size}));
+            pipeline(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
             return true;
         });
         return;
@@ -119,11 +125,12 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     log::debug("cache path is {}", cache_path);
 
     if (std::optional<std::ifstream> cache_file = open_cache(cache_path, cache_sha1_path, latest_sha1); cache_file) {
-        std::vector<std::byte> buffer;
-        buffer.resize(2000000);
         while (*cache_file) {
+            std::vector<std::byte> buffer;
+            buffer.resize(2000000);
             cache_file->read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-            pipeline.in(std::as_bytes(std::span{buffer.data(), static_cast<size_t>(cache_file->gcount())}));
+            buffer.resize(cache_file->gcount());
+            pipeline(std::move(buffer));
         }
         return;
     }
@@ -138,9 +145,15 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
         if (tmp_cache_file)
             tmp_cache_file.write(ptr, size);
-        pipeline.in(std::as_bytes(std::span{ptr, size}));
+        pipeline(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
         return true;
     });
+
+    if (!unbzip.finished())
+        throw Exception{"data ends with an unfinished bzip stream"};
+
+    std::vector<std::byte> sha1 = hasher.finish();
+    log::debug("pipeline sha1 is {}", to_hex(sha1));
 
     if (tmp_cache_file) {
         tmp_cache_file.close();
@@ -152,7 +165,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
             log::warn("could not open the file to cached data digest");
             return;
         }
-        cache_sha1_file.write(reinterpret_cast<char*>(latest_sha1.data()), latest_sha1.size());
+        cache_sha1_file.write(reinterpret_cast<char*>(sha1.data()), sha1.size());
         cache_sha1_file.close();
 
         log::info("successfully saved cached data");
