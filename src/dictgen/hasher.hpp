@@ -28,8 +28,8 @@ struct default_delete<EVP_MD_CTX> {
 
 namespace komankondi {
 
-struct Digest {
-    Digest(std::string_view algorithm);
+struct Hasher {
+    Hasher(std::string_view algorithm);
 
     void update(std::span<const std::byte> data);
     std::vector<std::byte> finish();
@@ -40,4 +40,4 @@ private:
     std::unique_ptr<EVP_MD_CTX> ctx_;
 };
 
-}  // namespace komankondi
+}  // namespace komankondi::dictgen

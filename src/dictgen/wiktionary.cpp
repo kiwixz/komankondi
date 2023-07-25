@@ -16,7 +16,7 @@
 #include <range/v3/view/split.hpp>
 #include <tao/pegtl/memory_input.hpp>
 
-#include "dictgen/digest.hpp"
+#include "dictgen/hasher.hpp"
 #include "dictgen/options.hpp"
 #include "dictgen/pipeline.hpp"
 #include "dictgen/xml.hpp"
@@ -97,7 +97,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     std::vector<std::byte> latest_sha1 = fetch_latest_sha1(dump_base, http);
     log::debug("latest data have the following sha1: {}", to_hex(latest_sha1));
 
-    Digest digest{"sha1"};
+    Hasher digest{"sha1"};
     Pipeline pipeline{[&](std::span<const std::byte> data) {
                           digest.update(data);
                           return data;

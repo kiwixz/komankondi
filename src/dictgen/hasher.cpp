@@ -1,4 +1,4 @@
-#include "digest.hpp"
+#include "hasher.hpp"
 
 #include <memory>
 
@@ -8,7 +8,7 @@
 
 namespace komankondi {
 
-Digest::Digest(std::string_view algorithm) {
+Hasher::Hasher(std::string_view algorithm) {
     impl_.reset(EVP_MD_fetch(nullptr, algorithm.data(), nullptr));
     if (!impl_)
         throw Exception{"could not fetch digest implementation"};
@@ -21,12 +21,12 @@ Digest::Digest(std::string_view algorithm) {
         throw Exception{"could not initialize digest"};
 }
 
-void Digest::update(std::span<const std::byte> data) {
+void Hasher::update(std::span<const std::byte> data) {
     if (!EVP_DigestUpdate(ctx_.get(), data.data(), data.size()))
         throw Exception{"could not update digest"};
 }
 
-std::vector<std::byte> Digest::finish() {
+std::vector<std::byte> Hasher::finish() {
     std::vector<std::byte> r;
     r.resize(EVP_MAX_MD_SIZE);
     unsigned size = r.size();
@@ -36,9 +36,9 @@ std::vector<std::byte> Digest::finish() {
     return r;
 }
 
-void Digest::reset() {
+void Hasher::reset() {
     if (!EVP_DigestInit_ex(ctx_.get(), impl_.get(), nullptr))
         throw Exception{"could not reset digest"};
 }
 
-}  // namespace komankondi
+}  // namespace komankondi::dictgen
