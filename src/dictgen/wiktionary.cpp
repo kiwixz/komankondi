@@ -18,6 +18,7 @@
 #include <tao/pegtl/memory_input.hpp>
 
 #include "dictgen/bzip.hpp"
+#include "dictgen/cache.hpp"
 #include "dictgen/hasher.hpp"
 #include "dictgen/options.hpp"
 #include "dictgen/pipeline.hpp"
@@ -25,7 +26,6 @@
 #include "utils/exception.hpp"
 #include "utils/hex.hpp"
 #include "utils/log.hpp"
-#include "utils/path.hpp"
 
 namespace komankondi::dictgen {
 namespace {
@@ -50,40 +50,6 @@ std::vector<std::byte> fetch_latest_sha1(std::string_view dump_base, httplib::SS
         throw Exception{"could not find the data in the lastest dump"};
     auto hex = *sha1sums_it | ranges::views::delimit(' ');
     return from_hex(std::string_view{&*hex.begin(), static_cast<size_t>(ranges::distance(hex))});
-}
-
-std::optional<std::ifstream> open_cache(const std::filesystem::path& path, const std::filesystem::path& sha1_path, std::span<const std::byte> latest_sha1) {
-    if (!std::filesystem::exists(path)) {
-        log::debug("cached data not found");
-        return {};
-    }
-
-    log::info("found cached data");
-
-    std::ifstream cache_sha1_file{sha1_path};
-    if (!cache_sha1_file) {
-        log::warn("found cached data but could not open its digest");
-        return {};
-    }
-
-    std::vector<std::byte> cache_sha1;
-    cache_sha1.resize(EVP_MAX_MD_SIZE);
-    cache_sha1_file.read(reinterpret_cast<char*>(cache_sha1.data()), cache_sha1.size());
-    cache_sha1.resize(cache_sha1_file.gcount());
-    log::debug("cached data have the following sha1: {}", to_hex(cache_sha1));
-
-    if (!ranges::equal(cache_sha1, latest_sha1)) {
-        log::info("cached data is stale");
-        return {};
-    }
-
-    std::ifstream r{path, std::ios::binary};
-    if (!r) {
-        log::warn("found fresh cached data but could not open it");
-        return {};
-    }
-
-    return r;
 }
 
 }  // namespace
@@ -111,64 +77,30 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                 log::dev("processing {} bytes", data.size());
             });
 
-    if (!opt.cache) {
+    auto source = [&](auto sink) {
         httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
-            pipeline(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
+            sink(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
             return true;
         });
-        return;
+
+        // wait for pipeline ?
+        // check http res ?
+
+        if (!unbzip.finished())
+            throw Exception{"data ends with an unfinished bzip stream"};
+
+        std::vector<std::byte> sha1 = hasher.finish();
+        log::debug("pipeline sha1 is {}", to_hex(sha1));
+        if (sha1 != latest_sha1)
+            throw Exception{"downloaded data does not match expected hash (expected {}, got {})", to_hex(latest_sha1), to_hex(sha1)};
+    };
+
+    if (opt.cache) {
+        std::string cache_name = fmt::format("wiktionary_{}.xml.bz2", language);
+        cache_data(cache_name, "sha1", latest_sha1, source, pipeline);
     }
-
-    std::string cache_name = fmt::format("wiktionary_{}.xml.bz2", language);
-    std::filesystem::path cache_path = get_cache_directory() / cache_name;
-    std::filesystem::path cache_sha1_path = get_cache_directory() / fmt::format("{}.sha1", cache_name);
-    log::debug("cache path is {}", cache_path);
-
-    if (std::optional<std::ifstream> cache_file = open_cache(cache_path, cache_sha1_path, latest_sha1); cache_file) {
-        while (*cache_file) {
-            std::vector<std::byte> buffer;
-            buffer.resize(2000000);
-            cache_file->read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-            buffer.resize(cache_file->gcount());
-            pipeline(std::move(buffer));
-        }
-        return;
-    }
-
-    std::string tmp_cache_name = fmt::format("komankondi_{}", std::chrono::steady_clock::now().time_since_epoch().count());
-    std::filesystem::path tmp_cache_path = std::filesystem::temp_directory_path() / tmp_cache_name;
-    log::debug("temporary cache path is {}", tmp_cache_path);
-    std::ofstream tmp_cache_file = std::ofstream{tmp_cache_path, std::ios::binary};
-    if (!tmp_cache_file)
-        log::warn("could not open the file to cached data");
-
-    httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
-        if (tmp_cache_file)
-            tmp_cache_file.write(ptr, size);
-        pipeline(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
-        return true;
-    });
-
-    if (!unbzip.finished())
-        throw Exception{"data ends with an unfinished bzip stream"};
-
-    std::vector<std::byte> sha1 = hasher.finish();
-    log::debug("pipeline sha1 is {}", to_hex(sha1));
-
-    if (tmp_cache_file) {
-        tmp_cache_file.close();
-        std::filesystem::create_directories(cache_path.parent_path());
-        std::filesystem::rename(tmp_cache_path, cache_path);
-
-        std::ofstream cache_sha1_file{cache_sha1_path};
-        if (!cache_sha1_file) {
-            log::warn("could not open the file to cached data digest");
-            return;
-        }
-        cache_sha1_file.write(reinterpret_cast<char*>(sha1.data()), sha1.size());
-        cache_sha1_file.close();
-
-        log::info("successfully saved cached data");
+    else {
+        source(pipeline);
     }
 }
 
