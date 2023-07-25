@@ -5,7 +5,7 @@
 
 #include "utils/traits.hpp"
 
-namespace komankondi {
+namespace komankondi::dictgen {
 
 template <typename Step, typename... NextSteps>
 struct Pipeline {

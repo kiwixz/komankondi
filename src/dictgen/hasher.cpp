@@ -6,7 +6,7 @@
 
 #include "utils/exception.hpp"
 
-namespace komankondi {
+namespace komankondi::dictgen {
 
 Hasher::Hasher(std::string_view algorithm) {
     impl_.reset(EVP_MD_fetch(nullptr, algorithm.data(), nullptr));

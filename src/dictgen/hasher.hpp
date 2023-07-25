@@ -26,7 +26,7 @@ struct default_delete<EVP_MD_CTX> {
 }  // namespace std
 
 
-namespace komankondi {
+namespace komankondi::dictgen {
 
 struct Hasher {
     Hasher(std::string_view algorithm);
