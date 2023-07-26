@@ -64,15 +64,20 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     Hasher hasher{"sha1"};
     BzipDecompressor unbzip;
 
-    Pipe pipeline = make_pipeline<std::vector<std::byte>>(
-            [&](std::vector<std::byte> data) {
+    Pipeline pipeline{
+            make_pipe<std::vector<std::byte>>([&](std::vector<std::byte>&& data) {
                 hasher.update(data);
-                return data;
-            },
-            [&](std::span<const std::byte> data) { return unbzip(data); },
-            [&](std::span<const std::byte> data) {
+                return std::move(data);
+            }),
+            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto sink) {
+                std::vector<std::byte> r = unbzip(data);
+                if (!r.empty())
+                    sink(std::move(r));
+            }),
+            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data) {
                 log::dev("processing {} bytes", data.size());
-            });
+            }),
+    };
 
     auto source = [&](auto sink) {
         httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
