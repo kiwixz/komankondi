@@ -80,13 +80,22 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     };
 
     auto source = [&](auto sink) {
-        httplib::Result res = http.Get(fmt::format("{}{}", dump_base, dump_file), [&](const char* ptr, size_t size) {
-            sink(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
-            return true;
-        });
+        httplib::Result res = http.Get(
+                fmt::format("{}{}", dump_base, dump_file),
+                [&](const httplib::Response& res) {
+                    if (res.status != 200)
+                        throw Exception{"could not get wiktionary data: http status {} ({})", res.status, res.reason};
+                    return true;
+                },
+                [&](const char* ptr, size_t size) {
+                    sink(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
+                    return true;
+                });
+
+        if (!res)
+            throw Exception{"could not get wiktionary data: {}", httplib::to_string(res.error())};
 
         // wait for pipeline ?
-        // check http res ?
 
         if (!unbzip.finished())
             throw Exception{"data ends with an unfinished bzip stream"};
