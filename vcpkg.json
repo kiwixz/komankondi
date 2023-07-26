@@ -1,6 +1,6 @@
 {
     "dependencies": [
-        "bzip2",
+        {"name": "bzip2", "default-features": false},
         "catch2",
         "cli11",
         "cpp-httplib",
