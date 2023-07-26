@@ -46,9 +46,16 @@ std::vector<std::byte> BzipDecompressor::operator()(std::span<const std::byte> d
             if (stream_.avail_in == 0)
                 break;
         }
+        else if (ret) {
+            throw Exception{"could not decompress bzip data, error {}", ret};
+        }
+        else if (stream_.avail_out == 0) {
+            int old_size = r.size();
+            r.resize(old_size * 2);
+            stream_.next_out = reinterpret_cast<char*>(r.data() + old_size);
+            stream_.avail_out += old_size;
+        }
         else {
-            if (ret)
-                throw Exception{"could not decompress bzip data, error {}", ret};
             break;
         }
     }
