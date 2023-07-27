@@ -62,6 +62,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
     Hasher hasher{"sha1"};
     BzipDecompressor unbzip;
+    xml::Iterate xml;
 
     Pipeline pipeline{
             make_pipe<std::vector<std::byte>>([&](std::vector<std::byte>&& data) {
@@ -72,6 +73,25 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                 std::vector<std::byte> r = unbzip(data);
                 if (!r.empty())
                     sink(std::move(r));
+            }),
+            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto sink) {
+                log::dev("parsing {} bytes", data.size());
+                xml({reinterpret_cast<const char*>(data.data()), data.size()},
+                    [&](std::string&& path, std::string&& text) {
+                        if (path == "mediawiki/page") {
+                            log::dev("page");
+                        }
+                        else if (path == "mediawiki/page/title") {
+                            log::dev("title = {}", text);
+                        }
+                        else if (path == "mediawiki/page/ns") {
+                            log::dev("ns = {}", text);
+                        }
+                        else if (path == "mediawiki/page/revision/text") {
+                            // log::dev("text = {}", text);
+                        }
+                    });
+                (void)sink;
             }),
             make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data) {
                 log::dev("processing {} bytes", data.size());
