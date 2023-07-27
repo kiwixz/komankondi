@@ -69,7 +69,7 @@ std::vector<std::byte> BzipDecompressor::operator()(std::span<const std::byte> d
     return r;
 }
 
-bool BzipDecompressor::finished() {
+bool BzipDecompressor::finished() const {
     return buffer_.empty();
 }
 

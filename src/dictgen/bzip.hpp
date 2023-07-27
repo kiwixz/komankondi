@@ -17,7 +17,7 @@ struct BzipDecompressor {
 
     std::vector<std::byte> operator()(std::span<const std::byte> data);
 
-    bool finished();
+    bool finished() const;
 
 private:
     std::vector<std::byte> buffer_;

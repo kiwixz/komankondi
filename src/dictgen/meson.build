@@ -14,6 +14,7 @@ dictgen_lib = static_library('dictgen', [
         'cache.cpp',
         'hasher.cpp',
         'wiktionary.cpp',
+        'xml.cpp',
     ],
     dependencies: dictgen_deps)
 
