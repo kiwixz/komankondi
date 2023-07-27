@@ -28,8 +28,7 @@ namespace komankondi::dictgen {
 namespace {
 
 constexpr std::string_view dump_base_fmt = "/{lang}wiktionary/latest/{lang}wiktionary-latest";
-// constexpr std::string_view dump_file = "-pages-articles.xml.bz2";
-constexpr std::string_view dump_file = "-flow.xml.bz2";
+constexpr std::string_view dump_file = "-pages-articles.xml.bz2";
 
 std::vector<std::byte> fetch_latest_sha1(std::string_view dump_base, httplib::SSLClient& http) {
     httplib::Result res = http.Get(fmt::format("{}-sha1sums.txt", dump_base));
