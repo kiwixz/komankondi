@@ -53,7 +53,7 @@ jobs:
     steps:
     - name: install
       run: |
-        pip install aqtinstall==3.1.* meson==1.1.*
+        pip install aqtinstall==3.1.* meson==1.2.*
         aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
