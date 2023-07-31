@@ -51,6 +51,8 @@ def configure_meson(build_dir, flags, vcpkg_toolchain):
         cxxflags += ['-g3']
         if sys.platform == 'win32':
             cxxflags += ['-D_DEBUG']
+        else:
+            options += ['-Db_sanitize=address,undefined']
     else:
         options += ['--buildtype=release']
         cxxflags += ['-Ofast']
