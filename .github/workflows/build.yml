@@ -34,7 +34,7 @@ jobs:
       run: |
         meson configure build -Dextra_warnings=false
         tmp=$(mktemp -d)
-        echo -e '#!/bin/sh\necho exec /usr/bin/clang-tidy --warnings-as-errors=* "$@"' >$tmp/clang-tidy
+        echo -e '#!/bin/sh\nexec /usr/bin/clang-tidy --warnings-as-errors=* "$@"' >$tmp/clang-tidy
         chmod +x $tmp/clang-tidy
         PATH="$tmp:$PATH" ninja -C build clang-tidy
     - name: upload build
