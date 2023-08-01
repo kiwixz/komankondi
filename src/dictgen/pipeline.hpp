@@ -72,7 +72,7 @@ private:
         }
         else {
             static_assert(std::is_same_v<std::invoke_result_t<Function, Input, void (*)(NextInput &&)>, void>);
-            func_(std::move(in), std::bind_front(&Next::operator(), &next_));
+            func_(std::move(in), [&](NextInput&& next_in) { next_(std::move(next_in)); });
         }
     }
 

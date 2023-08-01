@@ -16,8 +16,14 @@ bool Iterate::finished() const {
     return buffer_.empty() && state_.stack.empty();
 }
 
-int Iterate::buffer_size() const {
-    return buffer_.size();
+
+Select::Select(std::string&& path, std::vector<std::string>&& subpaths) :
+        select_path_{std::move(path)},
+        select_subpaths_{std::move(subpaths)} {
+}
+
+bool Select::finished() const {
+    return parser_.finished();
 }
 
 }  // namespace komankondi::dictgen::xml

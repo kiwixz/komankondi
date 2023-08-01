@@ -2,8 +2,10 @@
 
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
+#include <range/v3/algorithm/contains.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/join.hpp>
@@ -151,7 +153,7 @@ struct Iterate<Standalone> {
 struct Iterate {
     template <typename Predicate>
     void operator()(std::string_view input, Predicate&& pred) {
-        static_assert(std::is_invocable_v<Predicate, std::string&&, std::string&&>);
+        static_assert(std::is_invocable_v<Predicate, std::string&& /*path*/, std::string&& /*text*/>);
         static_assert(std::is_same_v<std::invoke_result_t<Predicate, std::string&&, std::string&&>, void>);
 
         if (!buffer_.empty()) {
@@ -173,17 +175,67 @@ struct Iterate {
     }
 
     bool finished() const;
-    int buffer_size() const;
 
 private:
     std::string buffer_;
     detail::IterateState state_;
 };
 
-
 template <typename Predicate>
 void iterate(std::string_view input, Predicate&& pred) {
     Iterate parser;
+    parser(input, std::forward<Predicate>(pred));
+    if (!parser.finished())
+        throw Exception{"could not fully parse xml input"};
+}
+
+
+struct Select {
+    using Element = std::unordered_multimap<std::string /*subpath*/, std::string /*text*/>;
+
+    Select(std::string&& path, std::vector<std::string>&& subpaths);
+
+    template <typename Predicate>
+    void operator()(std::string_view input, Predicate&& pred) {
+        static_assert(std::is_invocable_v<Predicate, Element&&>);
+        static_assert(std::is_same_v<std::invoke_result_t<Predicate, Element&&>, void>);
+
+        parser_(input, [&](std::string&& path, std::string&& text) {
+            if (!path.starts_with(select_path_))
+                return;
+
+            if (path.size() == select_path_.size()) {
+                if (ranges::contains(select_subpaths_, ""))
+                    current_.emplace("", std::move(text));
+                pred(std::move(current_));
+                current_ = {};
+                return;
+            }
+
+            if (path[select_path_.size()] != '/')
+                return;
+
+            std::string_view subpath = std::string_view{path}.substr(select_path_.size() + 1);
+            if (!ranges::contains(select_subpaths_, subpath))
+                return;
+
+            current_.emplace(subpath, std::move(text));
+        });
+    }
+
+    bool finished() const;
+
+private:
+    std::string select_path_;
+    std::vector<std::string> select_subpaths_;
+
+    Iterate parser_;
+    Element current_;
+};
+
+template <typename Predicate>
+void select(std::string_view input, std::string&& path, std::vector<std::string>&& subpaths, Predicate&& pred) {
+    Select parser{std::move(path), std::move(subpaths)};
     parser(input, std::forward<Predicate>(pred));
     if (!parser.finished())
         throw Exception{"could not fully parse xml input"};

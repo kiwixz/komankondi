@@ -62,7 +62,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
     Hasher hasher{"sha1"};
     BzipDecompressor unbzip;
-    xml::Iterate xml;
+    xml::Select dump_parser{"mediawiki/page", {"title", "ns", "revision/text"}};
 
     Pipeline pipeline{
             make_pipe<std::vector<std::byte>>([&](std::vector<std::byte>&& data) {
@@ -75,26 +75,24 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                     sink(std::move(r));
             }),
             make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto sink) {
-                log::dev("parsing {} bytes", data.size());
-                xml({reinterpret_cast<const char*>(data.data()), data.size()},
-                    [&](std::string&& path, std::string&& text) {
-                        if (path == "mediawiki/page") {
-                            log::dev("page");
-                        }
-                        else if (path == "mediawiki/page/title") {
-                            log::dev("title = {}", text);
-                        }
-                        else if (path == "mediawiki/page/ns") {
-                            log::dev("ns = {}", text);
-                        }
-                        else if (path == "mediawiki/page/revision/text") {
-                            // log::dev("text = {}", text);
-                        }
-                    });
-                (void)sink;
+                dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
+                            [&](xml::Select::Element&& el) {
+                                if (el.count("title") != 1
+                                    || el.count("ns") != 1
+                                    || el.count("revision/text") != 1)
+                                {
+                                    log::warn("ignoring dump page with missing data");
+                                    return;
+                                }
+
+                                if (el.find("ns")->second != "0")
+                                    return;
+
+                                sink({std::move(el.find("title")->second), std::move(el.find("revision/text")->second)});
+                            });
             }),
-            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data) {
-                log::dev("processing {} bytes", data.size());
+            make_pipe<std::pair<std::string, std::string>>([&](std::pair<std::string, std::string>&& page) {
+                log::dev("{}", page.first);
             }),
     };
 
