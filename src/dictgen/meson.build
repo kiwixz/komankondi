@@ -5,6 +5,7 @@ dictgen_deps = [
     cli11,
     fmt,
     httplib,
+    openssl,
     pegtl,
     range_v3,
 ]
