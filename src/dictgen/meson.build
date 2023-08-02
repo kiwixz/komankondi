@@ -11,7 +11,6 @@ dictgen_deps = [
 
 dictgen_lib = static_library('dictgen', [
         'bzip.cpp',
-        'cache.cpp',
         'hasher.cpp',
         'wiktionary.cpp',
         'xml.cpp',

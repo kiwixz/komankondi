@@ -57,12 +57,12 @@ struct Hexdump {
     std::span<const std::byte> data;
 
     template <typename T>
-    Hexdump(std::span<T> _data) :
-            data{std::as_bytes(_data)} {
+    Hexdump(std::span<const T> data_) :
+            data{std::as_bytes(data_)} {
     }
     template <typename T>
-    Hexdump(const T* _data, size_t size) :
-            data{std::as_bytes(std::span<const T>{_data, size})} {
+    Hexdump(const T* data_, size_t size) :
+            data{std::as_bytes(std::span<const T>{data_, size})} {
     }
 };
 

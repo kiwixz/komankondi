@@ -1,6 +1,6 @@
 #include "log.hpp"
 
-#include <iostream>
+#include <cstdio>
 
 #include <fmt/color.h>
 #include <fmt/core.h>
@@ -44,8 +44,7 @@ bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args) {
     format_level(fmt::appender{buf}, level);
     fmt::vformat_to(fmt::appender{buf}, fmt, args);
     buf.push_back('\n');
-    std::clog.write(buf.data(), buf.size());
-    std::clog.flush();
+    (void)std::fwrite(buf.data(), 1, buf.size(), stderr);
     return true;
 }
 

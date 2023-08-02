@@ -12,7 +12,7 @@ if get_option('debug')
 endif
 
 if build_machine.system() == 'windows'
-    cflags += '-D_CRT_SECURE_NO_WARNINGS'
+    cflags += ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
 endif
 
 if get_option('warning_level') == '3' and get_option('extra_warnings')

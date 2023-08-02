@@ -1,69 +1,74 @@
 #pragma once
 
 #include <filesystem>
-#include <fstream>
 #include <span>
 #include <string_view>
 #include <vector>
 
 #include <fmt/core.h>
 #include <fmt/std.h>
+#include <range/v3/algorithm/equal.hpp>
 
+#include "utils/file.hpp"
+#include "utils/hex.hpp"
 #include "utils/log.hpp"
 #include "utils/path.hpp"
 
 namespace komankondi::dictgen {
-namespace detail_cache {
-
-std::optional<std::ifstream> open_cache(const std::filesystem::path& path,
-                                        const std::filesystem::path& hash_path, std::span<const std::byte> latest_hash);
-void save_cache(const std::filesystem::path& path,
-                const std::filesystem::path& hash_path, std::span<const std::byte> latest_hash,
-                const std::filesystem::path& tmp_path);
-
-}  // namespace detail_cache
-
 
 template <typename Source, typename Sink>
 void cache_data(std::string_view name,
                 std::string_view hash_algorithm, std::span<const std::byte> latest_hash,
                 Source&& source, Sink&& sink) {
-    static_assert(std::is_invocable_r_v<void, Source, void (*)(std::vector<std::byte>)>);
-    static_assert(std::is_invocable_r_v<void, Sink, std::vector<std::byte>>);
+    static_assert(std::is_invocable_v<Source, void (*)(std::vector<std::byte>)>);
+    static_assert(std::is_same_v<std::invoke_result_t<Source, void (*)(std::vector<std::byte>)>, void>);
+    static_assert(std::is_invocable_v<Sink, std::vector<std::byte>>);
+    static_assert(std::is_same_v<std::invoke_result_t<Sink, std::vector<std::byte>>, void>);
 
     std::filesystem::path path = get_cache_directory() / name;
     std::filesystem::path hash_path = get_cache_directory() / fmt::format("{}.{}", name, hash_algorithm);
     log::debug("cache path is {}", path);
 
-    if (std::optional<std::ifstream> file = detail_cache::open_cache(path, hash_path, latest_hash); file) {
-        while (*file) {
-            std::vector<std::byte> buffer;
-            buffer.resize(2000000);
-            file->read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-            buffer.resize(file->gcount());
-            sink(std::move(buffer));
+    if (std::filesystem::exists(path)) {
+        log::info("found cache");
+
+        try {
+            std::vector<std::byte> cache_hash = File{hash_path, File::Mode::read | File::Mode::binary}.read<std::byte>(latest_hash.size() + 1);
+            log::debug("cache hash is {}", to_hex(cache_hash));
+            if (ranges::equal(cache_hash, latest_hash)) {
+                File cache_file{path, File::Mode::read | File::Mode::binary};
+                while (!cache_file.eof()) {
+                    sink(cache_file.read<std::byte>());
+                }
+                return;
+            }
+
+            log::info("cache is stale");
         }
-        return;
+        catch (const std::exception& ex) {
+            log::warn("found cache but could not use it: {}", ex.what());
+        }
     }
 
     std::string tmp_name = fmt::format("komankondi_{}", std::chrono::steady_clock::now().time_since_epoch().count());
     std::filesystem::path tmp_path = std::filesystem::temp_directory_path() / tmp_name;
     log::debug("temporary cache path is {}", tmp_path);
 
-    std::ofstream tmp_file = std::ofstream{tmp_path, std::ios::binary};
-    if (!tmp_file) {
-        log::warn("could not open a file to cache data");
-        source(sink);
-        return;
+    {
+        File tmp_file = File{tmp_path, File::Mode::truncate | File::Mode::binary};
+        source([&](std::vector<std::byte>&& data) {
+            tmp_file.write<std::byte>(data);
+            sink(std::move(data));
+        });
     }
 
-    source([&](std::vector<std::byte>&& data) {
-        tmp_file.write(reinterpret_cast<const char*>(data.data()), data.size());
-        sink(std::move(data));
-    });
+    std::filesystem::create_directories(path.parent_path());
+    std::filesystem::rename(tmp_path, path);
 
-    tmp_file.close();
-    detail_cache::save_cache(path, hash_path, latest_hash, tmp_path);
+    File hash_file{hash_path, File::Mode::truncate | File::Mode::binary};
+    hash_file.write(latest_hash);
+
+    log::info("successfully saved cached data");
 }
 
 }  // namespace komankondi::dictgen
