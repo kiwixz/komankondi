@@ -17,7 +17,7 @@ def run(args):
 
 def configure_vcpkg(install_dir, toolchain):
     vcpkg_dir = Path('vcpkg')
-    vcpkg_tool = vcpkg_dir / 'vcpkg'
+    vcpkg_tool = vcpkg_dir / ('vcpkg.exe' if sys.platform == 'win32' else 'vcpkg')
     if not vcpkg_tool.exists():
         bootstrap = 'bootstrap-vcpkg.' + ('bat' if sys.platform == 'win32' else 'sh')
         run([vcpkg_dir / bootstrap, '-disableMetrics'])
