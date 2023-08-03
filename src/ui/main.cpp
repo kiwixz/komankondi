@@ -6,7 +6,7 @@
 int main(int argc, char** argv) {
     Q_INIT_RESOURCE(main);
     QGuiApplication app{argc, argv};
-    QQuickView view{{"qrc:ui/main.qml"}};
+    QQuickView view{{"qrc:main.qml"}};
     if (!view.errors().empty())
         return 1;
     view.show();

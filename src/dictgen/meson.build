@@ -18,7 +18,7 @@ dictgen_lib = static_library('dictgen', [
     ],
     dependencies: dictgen_deps)
 
-executable('dictgen', 'main.cpp', dependencies: dictgen_deps, link_with: dictgen_lib)
+executable('komankondi-dictgen', 'main.cpp', dependencies: dictgen_deps, link_with: dictgen_lib, install: true)
 
 test('dictgen', executable('dictgen-test', [
         'test/pipeline.cpp',

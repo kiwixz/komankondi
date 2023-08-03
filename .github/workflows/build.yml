@@ -26,6 +26,13 @@ jobs:
       run: ./configure --buildtype=${{matrix.buildtype}} --flags=-Werror
     - name: build
       run: ninja -C build -k 0
+    - name: build
+      run: ./dist
+    - name: upload dist
+      uses: actions/upload-artifact@v3
+      with:
+        name: ubuntu-${{matrix.buildtype}}
+        path: build/komankondi.tar.xz
     - name: test
       run: ninja -C build test
     - name: format
@@ -37,12 +44,6 @@ jobs:
         echo -e '#!/bin/sh\nexec /usr/bin/clang-tidy --warnings-as-errors=* "$@"' >$tmp/clang-tidy
         chmod +x $tmp/clang-tidy
         PATH="$tmp:$PATH" ninja -C build clang-tidy
-    - name: upload build
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: build (${{matrix.buildtype}})
-        path: build
 
   windows:
     runs-on: windows-2022
@@ -54,7 +55,7 @@ jobs:
     - name: install
       run: |
         pip install aqtinstall==3.1.* meson==1.2.*
-        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative
+        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
       uses: actions/checkout@v3
@@ -72,13 +73,14 @@ jobs:
       run: python configure --buildtype=${{matrix.buildtype}} --flags=-Werror
     - name: build
       run: ninja -C build -k 0
+    - name: build
+      run: python dist
+    - name: upload dist
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-${{matrix.buildtype}}
+        path: build/komankondi.zip
     - name: test
       run: ninja -C build test
     - name: tidy
       run: ninja -C build clang-tidy
-    - name: upload build
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: build (${{matrix.buildtype}})
-        path: build

@@ -59,6 +59,8 @@ def configure_meson(build_dir, flags, vcpkg_toolchain):
 
     if build_type == 'release':
         options += ['-Db_lto=true', '-Db_ndebug=true']
+        if sys.platform != 'win32':
+            options += ['--strip']
     else:
         cxxflags += ['-D_GLIBCXX_ASSERTIONS', '-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=3', '-fstack-protector-strong']
 

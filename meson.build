@@ -38,6 +38,7 @@ else
     add_project_arguments(cflags, '-I' + meson.project_source_root() / 'src', language: 'cpp')
 endif
 
+
 module_qt = import('qt5')
 
 bzip2 = dependency('BZip2', include_type: 'system')
@@ -50,7 +51,8 @@ pegtl = dependency('pegtl', modules: 'taocpp::pegtl', include_type: 'system')
 qt = dependency('qt5', modules: ['Core', 'Gui', 'Qml', 'Quick'], include_type: 'system')
 range_v3 = dependency('range-v3', include_type: 'system')
 
+
 subdir('src/utils')
 
 subdir('src/dictgen')
-subdir('src/qt')
+subdir('src/ui')
