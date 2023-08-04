@@ -1,10 +1,15 @@
 #include "file.hpp"
 
+#include <cassert>
 #include <cstdio>
+#include <filesystem>
 #include <string>
+#include <system_error>
 
 #include <fmt/format.h>
 
+#include "utils/exception.hpp"
+#include "utils/log.hpp"
 #include "utils/platform.hpp"
 #include "utils/zstring_view.hpp"
 
@@ -73,6 +78,8 @@ File::Mode operator|(File::Mode a, File::Mode b) {
 
 
 void std::default_delete<FILE>::operator()(FILE* ptr) const {
-    [[maybe_unused]] int r = std::fclose(ptr);
-    assert(r == 0);
+    if (int err = std::fclose(ptr); err) {
+        komankondi::log::error("could not close file: {}", std::system_error{errno, std::system_category()}.what());
+        assert(false);
+    }
 }

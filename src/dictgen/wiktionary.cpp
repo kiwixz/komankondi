@@ -14,6 +14,7 @@
 #include <range/v3/view/split.hpp>
 #include <tao/pegtl/memory_input.hpp>
 
+#include "dict/writer.hpp"
 #include "dictgen/bzip.hpp"
 #include "dictgen/cache.hpp"
 #include "dictgen/hasher.hpp"
@@ -63,6 +64,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     Hasher hasher{"sha1"};
     BzipDecompressor unbzip;
     xml::Select dump_parser{"mediawiki/page", {"title", "ns", "revision/text"}};
+    dict::Writer dict{opt.dictionary};
 
     Pipeline pipeline{
             make_pipe<std::vector<std::byte>>([&](std::vector<std::byte>&& data) {
@@ -92,7 +94,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                             });
             }),
             make_pipe<std::pair<std::string, std::string>>([&](std::pair<std::string, std::string>&& page) {
-                log::dev("{}", page.first);
+                dict.add_word(page.first, page.second);
             }),
     };
 

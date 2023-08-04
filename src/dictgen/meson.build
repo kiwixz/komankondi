@@ -1,4 +1,5 @@
 dictgen_deps = [
+    dict,
     utils,
 
     bzip2,

@@ -1,5 +1,8 @@
+#include <stdexcept>
 #include <string>
 #include <string_view>
+
+#include <fmt/core.h>
 
 #include "dictgen/options.hpp"
 #include "dictgen/wiktionary.hpp"
@@ -15,12 +18,16 @@ int main(int argc, char** argv) {
         Options opt;
         Cli cli;
         cli.add_flag("--cache,!--no-cache", opt.cache, "Cache downloaded data");
+        cli.add_option("-o,--dictionary", opt.dictionary, "Path to the dictionary");
 
         std::string source;
         cli.add_option("source", source, "Where to extract the dictionary from")->required();
 
         if (std::optional<bool> ok = cli.parse(argc, argv); ok)
             return !*ok;
+
+        if (opt.dictionary == "<source>.dict")
+            opt.dictionary = fmt::format("{}.dict", source);
 
         constexpr std::string_view wiktionary_suffix = "wiktionary";
         if (source.ends_with(wiktionary_suffix)) {
