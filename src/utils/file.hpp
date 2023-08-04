@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "utils/exception.hpp"
+#include "utils/zstring_view.hpp"
 
 namespace std {
 
@@ -35,8 +36,7 @@ struct File {
         binary = 1 << 4,
     };
 
-    File(const char* path, Mode mode);
-    File(const std::string& path, Mode mode);
+    File(ZStringView path, Mode mode);
     File(const std::filesystem::path& path, Mode mode);
 
     bool eof() const;

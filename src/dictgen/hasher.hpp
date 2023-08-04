@@ -7,6 +7,8 @@
 
 #include <openssl/evp.h>
 
+#include "utils/zstring_view.hpp"
+
 namespace std {
 
 template <>
@@ -29,7 +31,7 @@ struct default_delete<EVP_MD_CTX> {
 namespace komankondi::dictgen {
 
 struct Hasher {
-    Hasher(std::string_view algorithm);
+    Hasher(ZStringView algorithm);
 
     void update(std::span<const std::byte> data);
     std::vector<std::byte> finish();

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "utils/exception.hpp"
+#include "utils/zstring_view.hpp"
 
 #ifdef _WIN32
 #  include <io.h>
@@ -14,11 +15,11 @@ constexpr auto fsync = _commit;
 
 namespace komankondi {
 
-FILE* fopen(const std::filesystem::path& path, const std::string& mode) {
+FILE* fopen(const std::filesystem::path& path, ZStringView mode) {
 #ifdef _WIN32
     return _wfopen(path.c_str(), std::wstring{mode.begin(), mode.end()}.c_str());
 #else
-    return std::fopen(path.c_str(), mode.c_str());
+    return std::fopen(path.c_str(), mode.data());
 #endif
 }
 

@@ -2,11 +2,12 @@
 
 #include <cstdio>
 #include <filesystem>
-#include <string>
+
+#include "utils/zstring_view.hpp"
 
 namespace komankondi {
 
-FILE* fopen(const std::filesystem::path& path, const std::string& mode);
+FILE* fopen(const std::filesystem::path& path, ZStringView mode);
 void fsync(FILE* stream);
 
 }  // namespace komankondi

@@ -5,10 +5,11 @@
 #include <openssl/evp.h>
 
 #include "utils/exception.hpp"
+#include "utils/zstring_view.hpp"
 
 namespace komankondi::dictgen {
 
-Hasher::Hasher(std::string_view algorithm) {
+Hasher::Hasher(ZStringView algorithm) {
     impl_.reset(EVP_MD_fetch(nullptr, algorithm.data(), nullptr));
     if (!impl_)
         throw Exception{"could not fetch digest implementation"};

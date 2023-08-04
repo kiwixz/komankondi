@@ -3,7 +3,10 @@
 #include <cstdio>
 #include <string>
 
+#include <fmt/format.h>
+
 #include "utils/platform.hpp"
+#include "utils/zstring_view.hpp"
 
 namespace komankondi {
 namespace {
@@ -40,14 +43,10 @@ std::string compute_mode(File::Mode mode) {
 }  // namespace
 
 
-File::File(const char* path, Mode mode) {
-    stream_.reset(std::fopen(path, compute_mode(mode).c_str()));
+File::File(ZStringView path, Mode mode) {
+    stream_.reset(std::fopen(path.data(), compute_mode(mode).c_str()));
     if (!stream_)
         throw SystemException{"could not open file '{}'", path};
-}
-
-File::File(const std::string& path, Mode mode) :
-        File{path.c_str(), mode} {
 }
 
 File::File(const std::filesystem::path& path, Mode mode) {
