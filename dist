@@ -24,7 +24,7 @@ args = parser.parse_args()
 build_dir = Path(args.builddir)
 
 options = {
-    opt["name"]: opt["value"]
+    opt['name']: opt['value']
     for opt in json.loads(run(['meson', 'introspect', build_dir, '--buildoptions'], capture_output=True).stdout)
 }
 
@@ -37,7 +37,7 @@ run(['meson', 'install', f'-C{build_dir}', f'--destdir={install_dir.relative_to(
 dist_name = 'komankondi'
 dist_dir = base_dist_dir / dist_name
 
-bin_dir = install_dir.joinpath(*Path(options["prefix"]).parts[1:], options["bindir"])
+bin_dir = install_dir.joinpath(*Path(options['prefix']).parts[1:], options['bindir'])
 shutil.move(bin_dir, dist_dir)
 
 if sys.platform == 'win32':
@@ -47,5 +47,5 @@ shutil.make_archive(str(build_dir / dist_name),
                     'zip' if sys.platform == 'win32' else 'xztar',
                     base_dist_dir,
                     dist_name,
-                    owner="root",
-                    group="root")
+                    owner='root',
+                    group='root')
