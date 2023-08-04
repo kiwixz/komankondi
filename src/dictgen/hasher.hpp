@@ -9,23 +9,15 @@
 
 #include "utils/zstring_view.hpp"
 
-namespace std {
-
 template <>
-struct default_delete<EVP_MD> {
-    void operator()(EVP_MD* ptr) const {
-        EVP_MD_free(ptr);
-    }
+struct std::default_delete<EVP_MD> {
+    void operator()(EVP_MD* ptr) const;
 };
 
 template <>
-struct default_delete<EVP_MD_CTX> {
-    void operator()(EVP_MD_CTX* ptr) const {
-        EVP_MD_CTX_free(ptr);
-    }
+struct std::default_delete<EVP_MD_CTX> {
+    void operator()(EVP_MD_CTX* ptr) const;
 };
-
-}  // namespace std
 
 
 namespace komankondi::dictgen {

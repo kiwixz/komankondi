@@ -43,3 +43,12 @@ void Hasher::reset() {
 }
 
 }  // namespace komankondi::dictgen
+
+
+void std::default_delete<EVP_MD>::operator()(EVP_MD* ptr) const {
+    EVP_MD_free(ptr);
+}
+
+void std::default_delete<EVP_MD_CTX>::operator()(EVP_MD_CTX* ptr) const {
+    EVP_MD_CTX_free(ptr);
+}

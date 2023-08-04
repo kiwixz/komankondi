@@ -70,3 +70,9 @@ File::Mode operator|(File::Mode a, File::Mode b) {
 }
 
 }  // namespace komankondi
+
+
+void std::default_delete<FILE>::operator()(FILE* ptr) const {
+    [[maybe_unused]] int r = std::fclose(ptr);
+    assert(r == 0);
+}

@@ -11,17 +11,10 @@
 #include "utils/exception.hpp"
 #include "utils/zstring_view.hpp"
 
-namespace std {
-
 template <>
-struct default_delete<FILE> {
-    void operator()(FILE* ptr) const {
-        [[maybe_unused]] int r = std::fclose(ptr);
-        assert(r == 0);
-    }
+struct std::default_delete<FILE> {
+    void operator()(FILE* ptr) const;
 };
-
-}  // namespace std
 
 
 namespace komankondi {
