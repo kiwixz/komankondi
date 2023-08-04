@@ -24,32 +24,32 @@ bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args);
 
 template <typename... Args>
 bool log(Level level, fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(level, fmt, fmt::make_format_args(args...));
+    return vlog(level, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 
 template <typename... Args>
 bool trace(fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(Level::trace, fmt, fmt::make_format_args(args...));
+    return vlog(Level::trace, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 template <typename... Args>
 bool debug(fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(Level::debug, fmt, fmt::make_format_args(args...));
+    return vlog(Level::debug, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 template <typename... Args>
 bool info(fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(Level::info, fmt, fmt::make_format_args(args...));
+    return vlog(Level::info, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 template <typename... Args>
 bool warn(fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(Level::warn, fmt, fmt::make_format_args(args...));
+    return vlog(Level::warn, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 template <typename... Args>
 bool error(fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(Level::error, fmt, fmt::make_format_args(args...));
+    return vlog(Level::error, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 template <typename... Args>
 bool dev(fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(Level::dev, fmt, fmt::make_format_args(args...));
+    return vlog(Level::dev, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 
 
