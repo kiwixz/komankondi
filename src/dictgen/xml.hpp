@@ -19,10 +19,20 @@
 #include "utils/exception.hpp"
 
 namespace komankondi::dictgen::xml {
-namespace detail::using_pegtl {
 
+struct ParsingException : Exception {
+    template <typename... Args>
+    ParsingException(const tao::pegtl::position& position, fmt::format_string<Args...> format, Args&&... args) :
+            Exception{"could not parse xml at {}:{}, {}", position.line, position.column,
+                      fmt::format(format, std::forward<Args>(args)...)} {
+    }
+};
+
+namespace detail {
+
+namespace using_pegtl {
 using namespace tao::pegtl;
-namespace grammar {
+namespace _ {
 
 struct Declaration : seq<one<'?'>,
                          until<one<'>'>>> {};
@@ -51,22 +61,10 @@ struct Standalone : sor<Text,
 
 struct Content : plus<Standalone> {};
 
-}  // namespace grammar
-}  // namespace detail::using_pegtl
+}  // namespace _
+}  // namespace using_pegtl
+using namespace detail::using_pegtl::_;
 
-
-struct XmlException : Exception {
-    template <typename... Args>
-    XmlException(const tao::pegtl::position& position, fmt::format_string<Args...> format, Args&&... args) :
-            Exception{"could not parse xml at {}:{}, {}", position.line, position.column,
-                      fmt::format(format, std::forward<Args>(args)...)} {
-    }
-};
-
-
-namespace detail {
-
-using namespace detail::using_pegtl::grammar;
 
 struct IterateState {
     struct Element {
@@ -128,9 +126,9 @@ struct Iterate<EndTag> {
     template <typename Input, typename Predicate>
     static void apply(const Input& in, IterateState& s, Predicate&& pred) {
         if (s.stack.empty())
-            throw XmlException{in.position(), "unexpected end tag"};
+            throw ParsingException{in.position(), "unexpected end tag"};
         if (s.last_tag_name != s.stack.back().name)
-            throw XmlException{in.position(), "end tag does not match current element (expected '{}', got '{}')", s.stack.back().name, s.last_tag_name};
+            throw ParsingException{in.position(), "end tag does not match current element (expected '{}', got '{}')", s.stack.back().name, s.last_tag_name};
         pred(s.stack | ranges::views::transform([](const auto& el) -> std::string_view { return el.name; })
                      | ranges::views::join('/')
                      | ranges::to<std::string>,
