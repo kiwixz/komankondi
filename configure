@@ -15,7 +15,7 @@ def run(args):
         sys.exit(r)
 
 
-def configure_vcpkg(install_dir, toolchain):
+def configure_vcpkg(build_type, install_dir, toolchain):
     vcpkg_dir = Path('vcpkg')
     vcpkg_tool = vcpkg_dir / ('vcpkg.exe' if sys.platform == 'win32' else 'vcpkg')
     if not vcpkg_tool.exists():
@@ -35,14 +35,16 @@ def configure_vcpkg(install_dir, toolchain):
     with open(toolchain, 'w') as f:
         f.write('\n'.join([
             '[properties]',
-            f"cmake_toolchain_file = '{Path('vcpkg/scripts/buildsystems/vcpkg.cmake').absolute()}'",
+            f"cmake_toolchain_file='{Path('vcpkg/scripts/buildsystems/vcpkg.cmake').absolute()}'",
+            '[built-in options]',
+            f"pkg_config_path='{install_dir.absolute() / triplet / ('debug' if build_type == 'debug' else '') / 'lib/pkgconfig'}'",
             '[cmake]',
-            f"VCPKG_INSTALLED_DIR = '{install_dir.absolute()}'",
-            f"VCPKG_TARGET_TRIPLET = '{triplet}'",
+            f"VCPKG_INSTALLED_DIR='{install_dir.absolute()}'",
+            f"VCPKG_TARGET_TRIPLET='{triplet}'",
         ]))
 
 
-def configure_meson(build_dir, flags, vcpkg_toolchain):
+def configure_meson(build_dir, build_type, flags, vcpkg_toolchain):
     options = [f'--native-file={vcpkg_toolchain}', '--default-library=static']
     cxxflags = ['-march=x86-64-v2']
 
@@ -89,6 +91,6 @@ with open(build_dir / '.gitignore', 'w') as f:
     f.write('*')
 
 vcpkg_toolchain = build_dir / 'meson-vcpkg.ini'
-configure_vcpkg(build_dir / 'vcpkg_installed', vcpkg_toolchain)
+configure_vcpkg(build_type, build_dir / 'vcpkg_installed', vcpkg_toolchain)
 
-configure_meson(build_dir, flags, vcpkg_toolchain)
+configure_meson(build_dir, build_type, flags, vcpkg_toolchain)

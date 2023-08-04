@@ -7,6 +7,7 @@
         "fmt",
         "openssl",
         "pegtl",
-        "range-v3"
+        "range-v3",
+        {"name": "sqlite3", "default-features": false}
     ]
 }
