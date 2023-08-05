@@ -1,5 +1,6 @@
 #include "wiktionary.hpp"
 
+#include <atomic>
 #include <span>
 #include <string>
 #include <string_view>
@@ -61,6 +62,12 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     std::vector<std::byte> latest_sha1 = fetch_latest_sha1(dump_base, http);
     log::debug("latest data sha1 is {}", to_hex(latest_sha1));
 
+    std::atomic<int> total_bytes = 0;
+    int total_words = 0;
+    std::chrono::steady_clock::time_point last_stat_time = std::chrono::steady_clock::now();
+    int last_stat_bytes = 0;
+    int last_stat_words = 0;
+
     Hasher hasher{"sha1"};
     BzipDecompressor unbzip;
     xml::Select dump_parser{"mediawiki/page", {"title", "ns", "revision/text"}};
@@ -68,6 +75,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
     Pipeline pipeline{
             make_pipe<std::vector<std::byte>>([&](std::vector<std::byte>&& data) {
+                total_bytes += data.size();
                 hasher.update(data);
                 return std::move(data);
             }),
@@ -94,7 +102,20 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                             });
             }),
             make_pipe<std::pair<std::string, std::string>>([&](std::pair<std::string, std::string>&& page) {
+                ++total_words;
                 dict.add_word(page.first, page.second);
+
+                std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                if (now > last_stat_time + std::chrono::seconds{1}) {
+                    int total_bytes_now = total_bytes.load();
+                    double delta = std::chrono::duration<double>(now - last_stat_time).count();
+                    log::status("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
+                                total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
+                                total_words, (total_words - last_stat_words) / delta);
+                    last_stat_time = now;
+                    last_stat_bytes = total_bytes_now;
+                    last_stat_words = total_words;
+                }
             }),
     };
 

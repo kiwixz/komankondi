@@ -12,7 +12,8 @@ void format_level(fmt::appender out, Level level) {
     switch (level) {
     case Level::trace: fmt::format_to(out, fmt::fg(fmt::terminal_color::cyan), "TRACE: "); break;
     case Level::debug: fmt::format_to(out, fmt::fg(fmt::terminal_color::bright_blue), "DEBUG: "); break;
-    case Level::info: break;
+    case Level::info:
+    case Level::status: break;
     case Level::warn: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_yellow), "WARNING: "); break;
     case Level::error: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_red), "ERROR: "); break;
     case Level::dev: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_magenta), "DEV: "); break;
@@ -43,7 +44,7 @@ bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args) {
     fmt::memory_buffer buf;
     format_level(fmt::appender{buf}, level);
     fmt::vformat_to(fmt::appender{buf}, fmt, args);
-    buf.push_back('\n');
+    buf.push_back(level == Level::status ? '\r' : '\n');
     (void)std::fwrite(buf.data(), 1, buf.size(), stderr);
     return true;
 }
