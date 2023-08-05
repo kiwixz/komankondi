@@ -41,7 +41,7 @@ std::vector<std::byte> fetch_latest_sha1(std::string_view dump_base, httplib::SS
     log::trace("wiktionary sha1sums:\n{}", res->body);
 
     auto sha1sums = res->body | ranges::views::split('\n');
-    auto sha1sums_it = ranges::find_if(sha1sums, [](auto line) {
+    auto sha1sums_it = ranges::find_if(sha1sums, [](auto&& line) {
         return ranges::ends_with(line, dump_file);
     });
     if (sha1sums_it == sha1sums.end())
@@ -79,12 +79,12 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                 hasher.update(data);
                 return std::move(data);
             }),
-            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto sink) {
+            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto&& sink) {
                 std::vector<std::byte> r = unbzip(data);
                 if (!r.empty())
                     sink(std::move(r));
             }),
-            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto sink) {
+            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto&& sink) {
                 dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
                             [&](xml::Select::Element&& el) {
                                 if (el.count("title") != 1
@@ -119,7 +119,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
             }),
     };
 
-    auto source = [&](auto sink) {
+    auto source = [&](auto&& sink) {
         httplib::Result res = http.Get(
                 fmt::format("{}{}", dump_base, dump_file),
                 [&](const httplib::Response& res) {

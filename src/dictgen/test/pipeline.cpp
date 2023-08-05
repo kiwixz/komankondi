@@ -20,7 +20,7 @@ TEST_CASE("pipeline") {
              make_pipe<int>([&](int a) { out += a; })}(5);
     CHECK(out == 17);
 
-    Pipeline{make_pipe<int>([](int a, auto sink) { sink(a * 2); }),
+    Pipeline{make_pipe<int>([](int a, auto&& sink) { sink(a * 2); }),
              make_pipe<int>([&](int a) { out += a; })}(8);
     CHECK(out == 33);
 }

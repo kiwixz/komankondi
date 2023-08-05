@@ -6,10 +6,8 @@
 
 namespace komankondi::dictgen {
 
-template <typename Input_, typename Function>
+template <typename Input, typename Function>
 struct Worker {
-    using Input = Input_;
-
     static_assert(std::is_invocable_v<Function, Input>);
     static_assert(std::is_same_v<std::invoke_result_t<Function, Input>, void>);
 
@@ -54,7 +52,7 @@ struct Pipeline {
 
     static_assert(std::is_invocable_v<Function, Input> || std::is_invocable_v<Function, Input, void (*)(NextInput&&)>);
 
-    Pipeline(Pipe pipe, NextPipes... next) :
+    Pipeline(Pipe&& pipe, NextPipes&&... next) :
             func_{std::move(pipe.func)},
             worker_{std::bind_front(&Pipeline::work, this)},
             next_{std::move(next)...} {
@@ -84,7 +82,9 @@ private:
 
 template <typename Pipe>
 struct Pipeline<Pipe> : Worker<typename Pipe::Input, typename Pipe::Function> {
-    Pipeline(Pipe pipe) :
+    using Input = typename Pipe::Input;
+
+    Pipeline(Pipe&& pipe) :
             Worker<typename Pipe::Input, typename Pipe::Function>{std::move(pipe.func)} {
     }
 };
