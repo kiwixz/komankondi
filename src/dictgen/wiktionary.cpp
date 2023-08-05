@@ -118,6 +118,8 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
         if (!unbzip.finished())
             throw Exception{"data ends with an unfinished bzip stream"};
+        if (!dump_parser.finished())
+            throw Exception{"data ends with an unfinished xml"};
 
         std::vector<std::byte> sha1 = hasher.finish();
         log::debug("pipeline sha1 is {}", to_hex(sha1));
