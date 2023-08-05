@@ -1,10 +1,16 @@
 #pragma once
 
 #include <functional>
+#include <thread>
 #include <type_traits>
 #include <utility>
 
+#include "utils/consume_queue.hpp"
+#include "utils/log.hpp"
+
 namespace komankondi::dictgen {
+
+static_assert(sizeof(std::vector<std::byte>));
 
 template <typename Input, typename Function>
 struct Worker {
@@ -12,15 +18,50 @@ struct Worker {
     static_assert(std::is_same_v<std::invoke_result_t<Function, Input>, void>);
 
     Worker(Function func) :
-            func_{std::move(func)} {
+            func_{std::move(func)},
+            thread_{std::bind_front(&Worker::loop, this)} {
     }
 
+    ~Worker() {
+        join();
+    }
+
+    Worker(const Worker&) = delete;
+    Worker& operator=(const Worker&) = delete;
+    Worker(Worker&&) = delete;
+    Worker& operator=(Worker&&) = delete;
+
     void operator()(Input&& in) {
-        func_(std::move(in));
+        queue_.push(std::move(in));
+    }
+
+    void join() {
+        if (!thread_.joinable())
+            return;
+        queue_.close();
+        thread_.join();
     }
 
 private:
     Function func_;
+
+    ConsumeQueue<Input> queue_;
+    std::thread thread_;
+
+    void loop() noexcept {
+        try {
+            while (true) {
+                std::optional<Input> in = queue_.pop();
+                if (!in)
+                    break;
+                func_(std::move(*in));
+            }
+            log::dev("worker exited");
+        }
+        catch (const std::runtime_error& ex) {
+            log::error("worker terminated: {}", ex.what());
+        }
+    }
 };
 
 template <typename Input, typename Function>
@@ -54,12 +95,23 @@ struct Pipeline {
 
     Pipeline(Pipe&& pipe, NextPipes&&... next) :
             func_{std::move(pipe.func)},
-            worker_{std::bind_front(&Pipeline::work, this)},
-            next_{std::move(next)...} {
+            next_{std::move(next)...},
+            worker_{std::bind_front(&Pipeline::work, this)} {
     }
+
+    ~Pipeline() = default;
+    Pipeline(const Pipeline&) = delete;
+    Pipeline& operator=(const Pipeline&) = delete;
+    Pipeline(Pipeline&&) = delete;
+    Pipeline& operator=(Pipeline&&) = delete;
 
     void operator()(Input&& in) {
         worker_(std::move(in));
+    }
+
+    void join() {
+        worker_.join();
+        next_.join();
     }
 
 private:
@@ -75,8 +127,9 @@ private:
     }
 
     Function func_;
-    Worker<Input, decltype(std::bind_front(&Pipeline::work, std::declval<Pipeline*>()))> worker_;
+
     Next next_;
+    Worker<Input, decltype(std::bind_front(&Pipeline::work, std::declval<Pipeline*>()))> worker_;
 };
 
 

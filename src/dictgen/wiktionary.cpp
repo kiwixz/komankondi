@@ -119,6 +119,21 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
             }),
     };
 
+    auto validate = [&] {
+        pipeline.join();
+
+        std::vector<std::byte> sha1 = hasher.finish();
+        log::debug("pipeline sha1 is {}", to_hex(sha1));
+        if (sha1 != latest_sha1)
+            throw Exception{"data does not match expected hash (expected {}, got {})", to_hex(latest_sha1), to_hex(sha1)};
+
+        if (!unbzip.finished())
+            throw Exception{"data ends with an unfinished bzip stream"};
+
+        if (!dump_parser.finished())
+            throw Exception{"data ends with an unfinished xml"};
+    };
+
     auto source = [&](auto&& sink) {
         httplib::Result res = http.Get(
                 fmt::format("{}{}", dump_base, dump_file),
@@ -135,22 +150,13 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
         if (!res)
             throw Exception{"could not get wiktionary data: {}", httplib::to_string(res.error())};
 
-        // wait for pipeline ?
-
-        if (!unbzip.finished())
-            throw Exception{"data ends with an unfinished bzip stream"};
-        if (!dump_parser.finished())
-            throw Exception{"data ends with an unfinished xml"};
-
-        std::vector<std::byte> sha1 = hasher.finish();
-        log::debug("pipeline sha1 is {}", to_hex(sha1));
-        if (sha1 != latest_sha1)
-            throw Exception{"downloaded data does not match expected hash (expected {}, got {})", to_hex(latest_sha1), to_hex(sha1)};
+        validate();
     };
 
     if (opt.cache) {
         std::string cache_name = fmt::format("wiktionary_{}.xml.bz2", language);
-        cache_data(cache_name, "sha1", latest_sha1, source, pipeline);
+        if (cache_data(cache_name, "sha1", latest_sha1, source, pipeline))
+            validate();
     }
     else {
         source(pipeline);

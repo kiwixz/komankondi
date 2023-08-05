@@ -16,8 +16,9 @@
 
 namespace komankondi::dictgen {
 
+/// Returns true if we read data from cache instead of calling source
 template <typename Source, typename Sink>
-void cache_data(std::string_view name,
+bool cache_data(std::string_view name,
                 std::string_view hash_algorithm, std::span<const std::byte> latest_hash,
                 Source&& source, Sink&& sink) {
     static_assert(std::is_invocable_v<Source, void (*)(std::vector<std::byte>)>);
@@ -40,7 +41,7 @@ void cache_data(std::string_view name,
                 while (!cache_file.eof()) {
                     sink(cache_file.read<std::byte>());
                 }
-                return;
+                return true;
             }
 
             log::info("cache is stale");
@@ -69,6 +70,7 @@ void cache_data(std::string_view name,
     hash_file.write(latest_hash);
 
     log::info("successfully saved cached data");
+    return false;
 }
 
 }  // namespace komankondi::dictgen
