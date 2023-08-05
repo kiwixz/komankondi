@@ -44,6 +44,7 @@ bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args) {
     fmt::memory_buffer buf;
     format_level(fmt::appender{buf}, level);
     fmt::vformat_to(fmt::appender{buf}, fmt, args);
+    buf.append(std::string_view{"\033[K"});
     buf.push_back(level == Level::status ? '\r' : '\n');
     (void)std::fwrite(buf.data(), 1, buf.size(), stderr);
     return true;
