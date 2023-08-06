@@ -1,18 +1,30 @@
+import QtQml 2.15
 import QtQuick 2.15
-import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.15
 
 Rectangle {
-    width: 800
-    height: 450
-    color: "green"
-    visible: true
+    color: "black"
 
     ColumnLayout {
-        Text {
-            text: "hello world!"
-            font.pointSize: 32
+        anchors.fill: parent
+
+        TextInput {
+            Layout.alignment: Qt.AlignHCenter
+
+            text: "input"
+            focus: true
             color: "white"
+            font.pointSize: 48
+        }
+
+        Text {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            text: "the <b>very</b> long description"
+            wrapMode: Text.Wrap
+            color: "white"
+            font.pointSize: 24
         }
     }
 }

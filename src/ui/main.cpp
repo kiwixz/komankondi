@@ -45,9 +45,6 @@ int main(int argc, char** argv) {
         if (window.status() != QQuickView::Ready)
             return 1;
 
-        Context ctx;
-        window.rootContext()->setContextProperty("ctx", &ctx);
-
         QTimer timer;
         if (hot_reload) {
             log::info("enabling hot reload");
@@ -77,6 +74,11 @@ int main(int argc, char** argv) {
             timer.start();
         }
 
+        Context ctx;
+        window.rootContext()->setContextProperty("ctx", &ctx);
+
+        window.setResizeMode(QQuickView::SizeRootObjectToView);
+        window.resize(800, 450);
         window.show();
         return app.exec();
     }
