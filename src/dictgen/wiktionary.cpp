@@ -10,6 +10,7 @@
 #include <httplib.h>
 #include <range/v3/algorithm/ends_with.hpp>
 #include <range/v3/algorithm/find_if.hpp>
+#include <range/v3/iterator/operations.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/delimit.hpp>
 #include <range/v3/view/split.hpp>

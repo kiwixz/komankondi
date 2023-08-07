@@ -1,4 +1,6 @@
 #include <exception>
+#include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -26,8 +28,11 @@ int main(int argc, char** argv) {
         if (std::optional<bool> ok = cli.parse(argc, argv); ok)
             return !*ok;
 
-        if (opt.dictionary == "<source>.dict")
-            opt.dictionary = fmt::format("{}.dict", source);
+        std::string_view source_placeholder = "<source>";
+        if (size_t i = opt.dictionary.find(source_placeholder); i != std::string::npos)
+            opt.dictionary.replace(i, source_placeholder.size(), source);
+
+        std::filesystem::create_directories(std::filesystem::path(opt.dictionary).parent_path());
 
         constexpr std::string_view wiktionary_suffix = "wiktionary";
         if (source.ends_with(wiktionary_suffix)) {
