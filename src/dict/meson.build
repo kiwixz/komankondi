@@ -5,7 +5,9 @@ dict_deps = [
 ]
 
 dict_lib = library('dict', [
-        'writer.cpp'
+        'database.cpp',
+        'reader.cpp',
+        'writer.cpp',
     ],
     dependencies: dict_deps)
 

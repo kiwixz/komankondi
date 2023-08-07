@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <utility>
 
 namespace komankondi {
@@ -34,26 +35,26 @@ struct FunctionTraits<R (*)(Args...)> : FunctionTraits<R(Args...)> {};
 
 template <typename R, typename... Args>
 struct FunctionTraits<R(Args...)> : FunctionTraits<R()> {
+    using Return = R;
+
+    static constexpr int nr_args = sizeof...(Args);
+
     template <int n>
     using Arg = typename NthElement<n, Args...>::Type;
 
-    static constexpr int nr_args = sizeof...(Args);
-};
-
-template <typename R>
-struct FunctionTraits<R()> {
-    using Return = R;
-
-    static constexpr int nr_args = 0;
+    using ArgsTuple = std::tuple<Args...>;
 };
 
 template <typename T>
 using FunctionReturn = typename FunctionTraits<T>::Return;
 
+template <typename T>
+static constexpr int function_nr_args = FunctionTraits<T>::nr_args;
+
 template <typename T, int n>
 using FunctionArg = typename FunctionTraits<T>::template Arg<n>;
 
 template <typename T>
-static constexpr int function_nr_args = FunctionTraits<T>::nr_args;
+using FunctionArgsTuple = typename FunctionTraits<T>::ArgsTuple;
 
 }  // namespace komankondi
