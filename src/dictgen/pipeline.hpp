@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <functional>
 #include <thread>
 #include <type_traits>
@@ -58,7 +59,7 @@ private:
             }
             log::dev("worker exited");
         }
-        catch (const std::runtime_error& ex) {
+        catch (const std::exception& ex) {
             log::error("worker terminated: {}", ex.what());
         }
     }

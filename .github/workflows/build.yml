@@ -18,7 +18,7 @@ jobs:
     - name: install
       run: |
         sudo apt-get update
-        sudo apt-get install meson qtdeclarative5-dev
+        sudo apt-get install black meson qtdeclarative5-dev
     - name: checkout
       uses: actions/checkout@v3
       with:
@@ -38,15 +38,8 @@ jobs:
         path: build/komankondi.tar.xz
     - name: test
       run: ninja -C build test
-    - name: format
-      run: ninja -C build clang-format-check
     - name: tidy
-      run: |
-        meson configure build -Dextra_warnings=false
-        tmp=$(mktemp -d)
-        echo -e '#!/bin/sh\nexec /usr/bin/clang-tidy --warnings-as-errors=* "$@"' >$tmp/clang-tidy
-        chmod +x $tmp/clang-tidy
-        PATH="$tmp:$PATH" ninja -C build clang-tidy
+      run: ./lint
 
   windows:
     runs-on: windows-2022
@@ -63,7 +56,7 @@ jobs:
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
     - name: install
       run: |
-        pip install aqtinstall==3.1.* meson==1.2.*
+        pip install aqtinstall==3.1.* black==23.7.* meson==1.2.*
         aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
@@ -87,5 +80,5 @@ jobs:
         path: build/komankondi.zip
     - name: test
       run: ninja -C build test
-    - name: tidy
-      run: ninja -C build clang-tidy
+    - name: lint
+      run: python lint build clang-tidy black qmllint

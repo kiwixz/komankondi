@@ -15,7 +15,7 @@ def run(args):
         sys.exit(r)
 
 
-def configure_vcpkg(build_type, install_dir, toolchain):
+def configure_vcpkg(install_dir, build_type, toolchain):
     vcpkg_dir = Path("vcpkg")
     vcpkg_tool = vcpkg_dir / ("vcpkg.exe" if sys.platform == "win32" else "vcpkg")
     if not vcpkg_tool.exists():
@@ -80,23 +80,23 @@ def configure_meson(build_dir, build_type, flags, vcpkg_toolchain):
     run(["meson", "setup", *options, build_dir])
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--buildtype", default="release", choices=["release", "dev", "debug"])
-parser.add_argument("--flags", help="Compiler flags")
-parser.add_argument("builddir", nargs="?", default="build", help="Build directory")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--buildtype", default="release", choices=["release", "dev", "debug"])
+    parser.add_argument("--flags", help="Compiler flags")
+    parser.add_argument("builddir", nargs="?", type=Path, default="build", help="Build directory")
+    args = parser.parse_args()
 
-args = parser.parse_args()
-build_dir = Path(args.builddir)
-build_type = args.buildtype
-flags = args.flags
+    shutil.rmtree(args.builddir, True)
 
-shutil.rmtree(build_dir, True)
+    args.builddir.mkdir()
+    with open(args.builddir / ".gitignore", "w") as f:
+        f.write("*")
 
-build_dir.mkdir()
-with open(build_dir / ".gitignore", "w") as f:
-    f.write("*")
+    vcpkg_toolchain = args.builddir / "meson-vcpkg.ini"
+    configure_vcpkg(args.builddir / "vcpkg_installed", args.buildtype, vcpkg_toolchain)
+    configure_meson(args.builddir, args.buildtype, args.flags, vcpkg_toolchain)
 
-vcpkg_toolchain = build_dir / "meson-vcpkg.ini"
-configure_vcpkg(build_type, build_dir / "vcpkg_installed", vcpkg_toolchain)
 
-configure_meson(build_dir, build_type, flags, vcpkg_toolchain)
+if __name__ == "__main__":
+    sys.exit(main())

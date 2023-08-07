@@ -1,4 +1,4 @@
-#include <stdexcept>
+#include <exception>
 #include <string>
 #include <string_view>
 
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
             throw Exception{"could not recognize source '{}'", source};
         }
     }
-    catch (const std::runtime_error& ex) {
+    catch (const std::exception& ex) {
         log::error("{}", ex.what());
         return 1;
     }

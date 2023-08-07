@@ -1,6 +1,6 @@
 #include <chrono>
+#include <exception>
 #include <filesystem>
-#include <stdexcept>
 
 #include <QDir>
 #include <QGuiApplication>
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
                     window.setSource(main_qml);
                     last_reload = now;
                 }
-                catch (const std::runtime_error& ex) {
+                catch (const std::exception& ex) {
                     log::error("{}", ex.what());
                     app.exit(1);
                 }
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
         window.show();
         return app.exec();
     }
-    catch (const std::runtime_error& ex) {
+    catch (const std::exception& ex) {
         log::error("{}", ex.what());
         return 1;
     }
