@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -8,8 +9,8 @@
 namespace komankondi {
 
 struct ZStringView {
-    ZStringView(const std::string& str);
     ZStringView(const char* str);
+    ZStringView(const std::string& str);
 
     operator std::string_view() const;
 
@@ -27,5 +28,14 @@ private:
 
 
 std::string_view format_as(ZStringView str);
+
+inline decltype(auto) make_zstring_view(const std::filesystem::path& str) {
+    if constexpr (std::is_same_v<std::filesystem::path::value_type, char>) {
+        return str.native();
+    }
+    else {
+        return str.string();
+    }
+}
 
 }  // namespace komankondi

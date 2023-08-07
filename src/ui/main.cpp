@@ -39,11 +39,18 @@ int main(int argc, char** argv) {
         const char* hot_reload = std::getenv("KOMANKONDI_HOT_RELOAD");
 
         QGuiApplication app{argc, argv};
+        Context c;
+        QQuickView window;
+
+        window.rootContext()->setContextProperty("c", &c);
+        window.setResizeMode(QQuickView::SizeRootObjectToView);
+        window.resize(800, 450);
 
         QUrl main_qml = QString::fromStdString(fmt::format("{}/main.qml", hot_reload ? hot_reload : "qrc:"));
-        QQuickView window{main_qml};
+        window.setSource(main_qml);
         if (window.status() != QQuickView::Ready)
             return 1;
+        window.show();
 
         QTimer timer;
         if (hot_reload) {
@@ -74,12 +81,6 @@ int main(int argc, char** argv) {
             timer.start();
         }
 
-        Context ctx;
-        window.rootContext()->setContextProperty("ctx", &ctx);
-
-        window.setResizeMode(QQuickView::SizeRootObjectToView);
-        window.resize(800, 450);
-        window.show();
         return app.exec();
     }
     catch (const std::exception& ex) {

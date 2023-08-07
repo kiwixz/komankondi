@@ -55,6 +55,7 @@ sqlite = dependency('sqlite3', 'unofficial-sqlite3', modules: 'unofficial::sqlit
 
 subdir('src/utils')
 subdir('src/dict')
+subdir('src/game')
 
 subdir('src/dictgen')
 subdir('src/ui')

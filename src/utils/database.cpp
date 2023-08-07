@@ -9,7 +9,7 @@
 #include "utils/exception.hpp"
 #include "utils/zstring_view.hpp"
 
-namespace komankondi::dict {
+namespace komankondi {
 
 Database::OperationAny::OperationAny(std::unique_ptr<sqlite3_stmt>&& op) :
         handle_{std::move(op)} {};
@@ -52,7 +52,7 @@ Database::OperationAny Database::prepare_any(std::string_view query, bool persis
     return r;
 }
 
-}  // namespace komankondi::dict
+}  // namespace komankondi
 
 
 void std::default_delete<sqlite3>::operator()(sqlite3* ptr) const {

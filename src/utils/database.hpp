@@ -24,7 +24,7 @@ struct std::default_delete<sqlite3_stmt> {
 };
 
 
-namespace komankondi::dict {
+namespace komankondi {
 
 struct Database {
     struct OperationAny {
@@ -188,4 +188,4 @@ private:
     OperationAny prepare_any(std::string_view query, bool persistent);
 };
 
-}  // namespace komankondi::dict
+}  // namespace komankondi

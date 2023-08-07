@@ -1,11 +1,8 @@
 dict_deps = [
     utils,
-
-    sqlite,
 ]
 
 dict_lib = library('dict', [
-        'database.cpp',
         'reader.cpp',
         'writer.cpp',
     ],

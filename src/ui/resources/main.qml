@@ -11,20 +11,28 @@ Rectangle {
         TextInput {
             Layout.alignment: Qt.AlignHCenter
 
-            text: "input"
             focus: true
             color: "white"
             font.pointSize: 48
+
+            onTextChanged: {
+                if (c.submit(text)) {
+                    text = ""
+                    description.text = c.description()
+                }
+            }
         }
 
         Text {
+            id: description
+
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            text: "the <b>very</b> long description"
+            text: c.description()
             wrapMode: Text.Wrap
             color: "white"
-            font.pointSize: 24
+            font.pointSize: 16
         }
     }
 }

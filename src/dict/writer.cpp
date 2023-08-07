@@ -15,7 +15,7 @@ Writer::Writer(ZStringView path) :
              "PRAGMA user_version=1;"
              "BEGIN;"
              "DROP TABLE IF EXISTS word;"
-             "CREATE TABLE word(word TEXT UNIQUE NOT NULL, description TEXT NOT NULL) STRICT");
+             "CREATE TABLE word(word TEXT PRIMARY KEY, description TEXT NOT NULL) STRICT");
 }
 
 Writer::~Writer() {

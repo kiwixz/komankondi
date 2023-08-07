@@ -3,8 +3,8 @@
 #include <string>
 #include <tuple>
 
-#include "dict/database.hpp"
 #include "dict/word.hpp"
+#include "utils/database.hpp"
 #include "utils/zstring_view.hpp"
 
 namespace komankondi::dict {

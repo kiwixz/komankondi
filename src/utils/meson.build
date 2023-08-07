@@ -1,10 +1,13 @@
 utils_deps = [
     cli11,
     fmt,
+    range_v3,
+    sqlite,
 ]
 
 utils_lib = library('utils', [
         'cli.cpp',
+        'database.cpp',
         'file.cpp',
         'hex.cpp',
         'log.cpp',

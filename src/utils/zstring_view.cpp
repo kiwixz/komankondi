@@ -5,11 +5,11 @@
 
 namespace komankondi {
 
-ZStringView::ZStringView(const std::string& str) :
+ZStringView::ZStringView(const char* str) :
         view_{str} {
 }
 
-ZStringView::ZStringView(const char* str) :
+ZStringView::ZStringView(const std::string& str) :
         view_{str} {
 }
 

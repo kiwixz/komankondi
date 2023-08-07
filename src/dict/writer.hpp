@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include "dict/database.hpp"
+#include "utils/database.hpp"
 #include "utils/zstring_view.hpp"
 
 namespace komankondi::dict {
