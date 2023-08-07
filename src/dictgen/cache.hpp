@@ -56,17 +56,18 @@ bool cache_data(std::string_view name,
     log::debug("temporary cache path is {}", tmp_path);
 
     {
-        File tmp_file = File{tmp_path, File::Mode::truncate | File::Mode::binary};
+        File tmp_file = File{tmp_path, File::Mode::write | File::Mode::binary};
         source([&](std::vector<std::byte>&& data) {
             tmp_file.write<std::byte>(data);
             sink(std::move(data));
         });
+        tmp_file.sync();
     }
 
     std::filesystem::create_directories(path.parent_path());
-    std::filesystem::rename(tmp_path, path);
-
     File hash_file{hash_path, File::Mode::truncate | File::Mode::binary};
+    hash_file.sync();
+    std::filesystem::rename(tmp_path, path);
     hash_file.write(latest_hash);
 
     log::info("successfully saved cached data");
