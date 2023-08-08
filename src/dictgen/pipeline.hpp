@@ -57,7 +57,7 @@ private:
                     break;
                 func_(std::move(*in));
             }
-            log::dev("worker exited");
+            log::debug("worker exited");
         }
         catch (const std::exception& ex) {
             log::error("worker terminated: {}", ex.what());
