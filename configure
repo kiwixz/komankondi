@@ -55,8 +55,7 @@ def configure_meson(build_dir, build_type, flags, vcpkg_toolchain):
     cxxflags = ["-march=x86-64-v2"]
 
     if build_type == "debug":
-        options += ["-Doptimization=g"]
-        cxxflags += ["-g3"]
+        options += ["--optimization=g"]
         if sys.platform == "win32":
             cxxflags += ["-D_DEBUG"]
         else:
@@ -70,7 +69,13 @@ def configure_meson(build_dir, build_type, flags, vcpkg_toolchain):
         if sys.platform != "win32":
             options += ["--strip"]
     else:
-        cxxflags += ["-D_GLIBCXX_ASSERTIONS", "-U_FORTIFY_SOURCE", "-D_FORTIFY_SOURCE=3", "-fstack-protector-strong"]
+        cxxflags += [
+            "-g3",
+            "-fstack-protector-strong",
+            "-D_GLIBCXX_ASSERTIONS",
+            "-U_FORTIFY_SOURCE",
+            "-D_FORTIFY_SOURCE=3",
+        ]
 
     if flags:
         options += [f"-Dcpp_link_args={flags}"]
