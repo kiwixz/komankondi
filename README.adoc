@@ -16,7 +16,12 @@ You can also skip the `configure` script and directly call `meson setup` if you 
 
 == Dictionary
 
-Before playing you will need a komankondi dictionary.  This is nothing more than a compressed database of words and their definition.  The easiest way to get one is to run the `komankondi-dictgen` tool.  It takes a source as argument, and currently it only supports extracting the data from the https://wiktionary.org[wiktionary].  Prepend the desired language code; so for example to download data from the english (en) wiktionary you would execute the following:
+Before playing you will need a komankondi dictionary.  This is nothing more than a database of words and their definition.  The easiest way to get one is to run the `komankondi-dictgen` tool.  It takes a source as argument, and currently only supports extracting the data from the https://wiktionary.org[wiktionary].  Prepend the desired language code; so for example to download data from the english (en) wiktionary you would execute the following:
 ----
 komankondi-dictgen enwiktionary
 ----
+
+
+== Playing
+
+After all that you should be able to launch the game and have some fun!
