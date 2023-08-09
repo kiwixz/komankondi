@@ -11,8 +11,6 @@
 
 namespace komankondi::dictgen {
 
-static_assert(sizeof(std::vector<std::byte>));
-
 template <typename Input, typename Function>
 struct Worker {
     static_assert(std::is_invocable_v<Function, Input>);
