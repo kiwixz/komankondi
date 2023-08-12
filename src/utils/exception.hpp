@@ -19,7 +19,12 @@ struct Exception : std::runtime_error {
 struct SystemException : std::system_error {
     template <typename... Args>
     SystemException(fmt::format_string<Args...> format, Args&&... args) :
-            std::system_error{errno, std::system_category(), fmt::format(format, std::forward<Args>(args)...)} {
+            SystemException{errno, format, std::forward<Args>(args)...} {
+    }
+
+    template <typename... Args>
+    SystemException(std::errc error_code, fmt::format_string<Args...> format, Args&&... args) :
+            SystemException{static_cast<int>(error_code), format, std::forward<Args>(args)...} {
     }
 
     template <typename... Args>
