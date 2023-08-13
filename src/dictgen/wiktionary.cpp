@@ -65,9 +65,9 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
     httplib::SSLClient http{"dumps.wikimedia.org"};
 
-    std::string dump_file = fmt::format("/{0}wiktionary/latest/{0}wiktionary-latest-pages-articles.xml.bz2", language);
+    std::string dump_url = fmt::format("/{0}wiktionary/latest/{0}wiktionary-latest-pages-articles.xml.bz2", language);
 
-    httplib::Result res = http.Head(dump_file);
+    httplib::Result res = http.Head(dump_url);
     if (!res)
         throw Exception{"could not check latest wiktionary dump: {}", httplib::to_string(res.error())};
     if (res->status != 200)
@@ -149,10 +149,10 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
     auto source = [&](auto&& sink) {
         httplib::Result res = http.Get(
-                dump_file,
+                dump_url,
                 [&](const httplib::Response& res) {
                     if (res.status != 200)
-                        throw Exception{"could not get wiktionary data: http status {} ({})", res.status, res.reason};
+                        throw Exception{"could not download wiktionary dump: http status {} ({})", res.status, res.reason};
                     return true;
                 },
                 [&](const char* ptr, size_t size) {
@@ -161,7 +161,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                 });
 
         if (!res)
-            throw Exception{"could not get wiktionary data: {}", httplib::to_string(res.error())};
+            throw Exception{"could not download wiktionary dump: {}", httplib::to_string(res.error())};
 
         validate();
     };
