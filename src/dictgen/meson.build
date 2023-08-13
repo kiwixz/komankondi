@@ -9,10 +9,13 @@ dictgen_deps = [
     openssl,
     pegtl,
     range_v3,
+    tbb,
 ]
 
 dictgen_lib = static_library('dictgen', [
         'bzip.cpp',
+        'cache.cpp',
+        'downloader.cpp',
         'hasher.cpp',
         'wiktionary.cpp',
         'xml.cpp',
@@ -22,7 +25,6 @@ dictgen_lib = static_library('dictgen', [
 executable('komankondi-dictgen', 'main.cpp', dependencies: dictgen_deps, link_with: dictgen_lib, install: true)
 
 test('dictgen', executable('dictgen-test', [
-        'test/pipeline.cpp',
         'test/xml.cpp',
     ],
     dependencies: [dictgen_deps, catch2],

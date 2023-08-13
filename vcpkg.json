@@ -1,6 +1,6 @@
 {
     "dependencies": [
-        {"name": "bzip2", "default-features": false},
+        { "name": "bzip2", "default-features": false },
         "catch2",
         "cli11",
         "cpp-httplib",
@@ -8,6 +8,7 @@
         "openssl",
         "pegtl",
         "range-v3",
-        {"name": "sqlite3", "default-features": false}
+        { "name": "sqlite3", "default-features": false },
+        "tbb"
     ]
 }

@@ -47,6 +47,7 @@ pegtl = dependency('pegtl', modules: 'taocpp::pegtl', include_type: 'system')
 qt = dependency('qt5', modules: ['Core', 'Gui', 'Qml', 'Quick'], include_type: 'system')
 range_v3 = dependency('range-v3', include_type: 'system')
 sqlite = dependency('sqlite3', 'unofficial-sqlite3', modules: 'unofficial::sqlite3::sqlite3', include_type: 'system')
+tbb = dependency('tbb', include_type: 'system')
 
 
 subdir('src/utils')

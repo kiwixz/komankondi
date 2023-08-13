@@ -9,13 +9,13 @@
 
 #include <httplib.h>
 #include <range/v3/algorithm/find.hpp>
-#include <range/v3/range/conversion.hpp>
+#include <tbb/parallel_pipeline.h>
 
 #include "dict/writer.hpp"
 #include "dictgen/bzip.hpp"
 #include "dictgen/cache.hpp"
+#include "dictgen/downloader.hpp"
 #include "dictgen/options.hpp"
-#include "dictgen/pipeline.hpp"
 #include "dictgen/xml.hpp"
 #include "utils/exception.hpp"
 #include "utils/log.hpp"
@@ -34,13 +34,13 @@ std::chrono::file_clock::time_point parse_dump_date(std::string_view str) {
         || str[19] != ':' || str[22] != ':'
         || str.substr(25) != " GMT")
     {
-        throw Exception{"could not parse http date from unsupported format: '{}'", str};
+        throw Exception{"Could not parse http date from unsupported format: '{}'", str};
     }
 
     std::array months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     auto months_it = ranges::find(months, str.substr(8, 3));
     if (months_it == months.end())
-        throw Exception{"unknown month: '{}'", str.substr(8, 3)};
+        throw Exception{"Unknown month: '{}'", str.substr(8, 3)};
 
     std::chrono::system_clock::time_point r = std::chrono::sys_days{std::chrono::year_month_day{
                                                       std::chrono::year{parse<int>(str.substr(12, 4))},
@@ -61,119 +61,141 @@ std::chrono::file_clock::time_point parse_dump_date(std::string_view str) {
 
 
 void dictgen_wiktionary(std::string_view language, const Options& opt) {
-    log::info("generating {} dictionary from wiktionary", language);
+    log::info("Generating {} dictionary from wiktionary", language);
 
-    httplib::SSLClient http{"dumps.wikimedia.org"};
-
+    std::string dump_host = "dumps.wikimedia.org";
     std::string dump_url = fmt::format("/{0}wiktionary/latest/{0}wiktionary-latest-pages-articles.xml.bz2", language);
 
-    httplib::Result res = http.Head(dump_url);
+    httplib::Result res = httplib::SSLClient{dump_host}.Head(dump_url);
     if (!res)
-        throw Exception{"could not check latest wiktionary dump: {}", httplib::to_string(res.error())};
+        throw Exception{"Could not check latest wiktionary dump: {}", httplib::to_string(res.error())};
     if (res->status != 200)
-        throw Exception{"could not check latest wiktionary dump: http status {} ({})", res->status, res->reason};
+        throw Exception{"Could not check latest wiktionary dump: HTTP status {} ({})", res->status, res->reason};
 
     std::string dump_date_str = res->get_header_value("last-modified");
     if (dump_date_str.empty())
-        throw Exception{"could not get latest wiktionary dump date"};
+        throw Exception{"Could not get latest wiktionary dump date"};
 
-    log::info("using latest dump from {}", dump_date_str);
+    log::info("Using latest dump from {}", dump_date_str);
     std::chrono::file_clock::time_point dump_date = parse_dump_date(dump_date_str);
 
+    std::optional<File> cached_file;
+    std::optional<Downloader> downloader;
+    std::optional<Cacher> cacher;
+    std::function<std::optional<std::vector<std::byte>>()> fetch;
+    if (opt.cache) {
+        std::filesystem::path cache_path = get_cache_directory() / fmt::format("{}wiktionary.xml.bz2", language);
+        cached_file = try_load_cache(cache_path, dump_date);
+        if (cached_file) {
+            fetch = [&cached_file]() -> std::optional<std::vector<std::byte>> {
+                if (cached_file->eof())
+                    return {};
+                return cached_file->read();
+            };
+        }
+        else {
+            downloader.emplace(dump_host, dump_url);
+            cacher.emplace(cache_path, dump_date);
+            fetch = [&downloader, &cacher] {
+                std::optional<std::vector<std::byte>> r = downloader->read();
+                if (r) {
+                    cacher->write<std::byte>(*r);
+                }
+                else {
+                    cacher->save();
+                }
+                return r;
+            };
+        }
+    }
+    else {
+        downloader.emplace(dump_host, dump_url);
+        fetch = [&downloader] { return downloader->read(); };
+    }
+
+
     std::atomic<int> total_bytes = 0;
-    int total_words = 0;
-    std::chrono::steady_clock::time_point last_stat_time = std::chrono::steady_clock::now();
-    int last_stat_bytes = 0;
-    int last_stat_words = 0;
 
     BzipDecompressor unbzip;
     xml::Select dump_parser{"mediawiki/page", {"title", "ns", "revision/text"}};
     dict::Writer dict{opt.dictionary};
 
-    Pipeline pipeline{
-            make_pipe<std::vector<std::byte>>([&](std::vector<std::byte>&& data) {
-                total_bytes += data.size();
-                return std::move(data);
-            }),
-            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto&& sink) {
-                std::vector<std::byte> r = unbzip(data);
-                while (true) {
-                    if (r.empty())
-                        break;
-                    sink(std::move(r));
-                    r = unbzip();
-                }
-            }),
-            make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto&& sink) {
-                dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
-                            [&](xml::Select::Element&& el) {
-                                if (el.count("title") != 1
-                                    || el.count("ns") != 1
-                                    || el.count("revision/text") != 1)
-                                {
-                                    log::warn("ignoring dump page with missing data");
-                                    return;
-                                }
+    int total_words = 0;
+    std::chrono::steady_clock::time_point last_stat_time = std::chrono::steady_clock::now();
+    int last_stat_bytes = 0;
+    int last_stat_words = 0;
 
-                                if (el.find("ns")->second != "0")
-                                    return;
+    tbb::parallel_pipeline(10, tbb::make_filter<void, std::vector<std::byte>>(
+                                       tbb::filter_mode::serial_in_order,
+                                       [&total_bytes, &fetch](tbb::flow_control& fc) {
+                                           std::optional<std::vector<std::byte>> data = fetch();
+                                           if (!data) {
+                                               fc.stop();
+                                               return std::vector<std::byte>{};
+                                           }
+                                           total_bytes.fetch_add(data->size(), std::memory_order::relaxed);
+                                           return std::move(*data);
+                                       })
+                                       & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
+                                               tbb::filter_mode::serial_in_order,
+                                               [&unbzip](std::span<const std::byte> data) {
+                                                   std::vector<std::byte> r = unbzip(data);
+                                                   while (true) {
+                                                       std::vector<std::byte> more = unbzip();
+                                                       if (more.empty())
+                                                           break;
+                                                       r.insert(r.end(), more.begin(), more.end());
+                                                   }
+                                                   return r;
+                                               })
+                                       & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
+                                               tbb::filter_mode::serial_in_order,
+                                               [&dump_parser](std::span<const std::byte> data) {
+                                                   std::vector<std::pair<std::string, std::string>> r;
+                                                   dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
+                                                               [&](xml::Select::Element&& el) {
+                                                                   if (el.count("title") != 1
+                                                                       || el.count("ns") != 1
+                                                                       || el.count("revision/text") != 1)
+                                                                   {
+                                                                       log::warn("Ignoring dump page with missing data");
+                                                                       return;
+                                                                   }
 
-                                sink({std::move(el.find("title")->second), std::move(el.find("revision/text")->second)});
-                            });
-            }),
-            make_pipe<std::pair<std::string, std::string>>([&](std::pair<std::string, std::string>&& page) {
-                ++total_words;
-                dict.add_word(page.first, page.second);
+                                                                   if (el.find("ns")->second != "0")
+                                                                       return;
 
-                std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-                if (now > last_stat_time + std::chrono::seconds{1}) {
-                    int total_bytes_now = total_bytes.load();
-                    double delta = std::chrono::duration<double>(now - last_stat_time).count();
-                    log::info("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
-                              total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
-                              total_words, (total_words - last_stat_words) / delta);
-                    last_stat_time = now;
-                    last_stat_bytes = total_bytes_now;
-                    last_stat_words = total_words;
-                }
-            }),
-    };
+                                                                   r.emplace_back(std::move(el.find("title")->second),
+                                                                                  std::move(el.find("revision/text")->second));
+                                                               });
+                                                   return r;
+                                               })
+                                       & tbb::make_filter<std::vector<std::pair<std::string, std::string>>, void>(
+                                               tbb::filter_mode::serial_out_of_order,
+                                               [&total_words, &total_bytes, &last_stat_time, &last_stat_bytes, &last_stat_words, &dict](
+                                                       const std::vector<std::pair<std::string, std::string>>& words) {
+                                                   for (const auto& [word, description] : words) {
+                                                       ++total_words;
+                                                       dict.add_word(word, description);
 
-    auto validate = [&] {
-        pipeline.join();
-        if (!unbzip.finished())
-            throw Exception{"wiktionary data ends with an unfinished bzip stream"};
-        if (!dump_parser.finished())
-            throw Exception{"wiktionary data ends with an unfinished xml"};
-    };
+                                                       std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                                                       if (now > last_stat_time + std::chrono::seconds{2}) {
+                                                           int total_bytes_now = total_bytes.load(std::memory_order::relaxed);
+                                                           double delta = std::chrono::duration<double>(now - last_stat_time).count();
+                                                           log::info("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
+                                                                     total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
+                                                                     total_words, (total_words - last_stat_words) / delta);
+                                                           last_stat_time = now;
+                                                           last_stat_bytes = total_bytes_now;
+                                                           last_stat_words = total_words;
+                                                       }
+                                                   }
+                                               }));
 
-    auto source = [&](auto&& sink) {
-        httplib::Result res = http.Get(
-                dump_url,
-                [&](const httplib::Response& res) {
-                    if (res.status != 200)
-                        throw Exception{"could not download wiktionary dump: http status {} ({})", res.status, res.reason};
-                    return true;
-                },
-                [&](const char* ptr, size_t size) {
-                    sink(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
-                    return true;
-                });
-
-        if (!res)
-            throw Exception{"could not download wiktionary dump: {}", httplib::to_string(res.error())};
-
-        validate();
-    };
-
-    if (opt.cache) {
-        std::string cache_name = fmt::format("{}wiktionary.xml.bz2", language);
-        if (cache_data(cache_name, dump_date, source, pipeline))
-            validate();
-    }
-    else {
-        source(pipeline);
-    }
+    if (!unbzip.finished())
+        throw Exception{"Wiktionary data ends with an unfinished bzip stream"};
+    if (!dump_parser.finished())
+        throw Exception{"Wiktionary data ends with an unfinished xml"};
 }
 
 }  // namespace komankondi::dictgen

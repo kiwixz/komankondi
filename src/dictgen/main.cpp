@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
             dictgen_wiktionary(std::string_view{source}.substr(0, source.length() - wiktionary_suffix.length()), opt);
         }
         else {
-            throw Exception{"could not recognize source '{}'", source};
+            throw Exception{"Could not recognize source '{}'", source};
         }
     }
     catch (const std::exception& ex) {
