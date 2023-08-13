@@ -11,7 +11,7 @@ enum class Level {
     debug,
     info,
     status,
-    warn,
+    warning,
     error,
     dev,
 };
@@ -46,7 +46,7 @@ bool status(fmt::format_string<Args...> fmt, Args&&... args) {
 }
 template <typename... Args>
 bool warn(fmt::format_string<Args...> fmt, Args&&... args) {
-    return vlog(Level::warn, fmt, fmt::make_format_args(std::forward<Args>(args)...));
+    return vlog(Level::warning, fmt, fmt::make_format_args(std::forward<Args>(args)...));
 }
 template <typename... Args>
 bool error(fmt::format_string<Args...> fmt, Args&&... args) {

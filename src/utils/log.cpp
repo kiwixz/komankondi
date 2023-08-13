@@ -5,6 +5,8 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
+#include "utils/iequal.hpp"
+
 namespace komankondi::log {
 namespace {
 
@@ -14,14 +16,28 @@ void format_level(fmt::appender out, Level level) {
     case Level::debug: fmt::format_to(out, fmt::fg(fmt::terminal_color::bright_blue), "DEBUG: "); break;
     case Level::info:
     case Level::status: break;
-    case Level::warn: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_yellow), "WARNING: "); break;
+    case Level::warning: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_yellow), "WARNING: "); break;
     case Level::error: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_red), "ERROR: "); break;
     case Level::dev: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_magenta), "DEV: "); break;
     }
 }
 
 Level& verbosity_mutable() {
-    static Level r = Level::info;
+    static Level r = [] {
+        if (const char* env = std::getenv("LOGLEVEL"); env) {
+            if (iequal(env, "trace"))
+                return Level::trace;
+            if (iequal(env, "debug"))
+                return Level::debug;
+            if (iequal(env, "status"))
+                return Level::status;
+            if (iequal(env, "warning"))
+                return Level::warning;
+            if (iequal(env, "error"))
+                return Level::error;
+        }
+        return Level::info;
+    }();
     return r;
 }
 

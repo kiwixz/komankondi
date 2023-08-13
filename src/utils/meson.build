@@ -10,6 +10,7 @@ utils_lib = library('utils', [
         'database.cpp',
         'file.cpp',
         'hex.cpp',
+        'iequal.cpp',
         'log.cpp',
         'path.cpp',
         'platform.cpp',

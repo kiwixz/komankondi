@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
                 switch (level_qt) {
                 case QtDebugMsg: return log::Level::debug;
                 case QtInfoMsg: return log::Level::info;
-                case QtWarningMsg: return log::Level::warn;
+                case QtWarningMsg: return log::Level::warning;
                 case QtCriticalMsg:
                 case QtFatalMsg: return log::Level::error;
                 }
