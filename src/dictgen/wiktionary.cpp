@@ -97,8 +97,12 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
             }),
             make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto&& sink) {
                 std::vector<std::byte> r = unbzip(data);
-                if (!r.empty())
+                while (true) {
+                    if (r.empty())
+                        break;
                     sink(std::move(r));
+                    r = unbzip();
+                }
             }),
             make_pipe<std::vector<std::byte>>([&](std::span<const std::byte> data, auto&& sink) {
                 dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},

@@ -5,6 +5,8 @@
 
 #include <bzlib.h>
 
+#include "utils/buffer.hpp"
+
 namespace komankondi::dictgen {
 
 struct BzipDecompressor {
@@ -15,13 +17,14 @@ struct BzipDecompressor {
     BzipDecompressor(BzipDecompressor&&) = delete;
     BzipDecompressor& operator=(BzipDecompressor&&) = delete;
 
-    std::vector<std::byte> operator()(std::span<const std::byte> data);
-
     bool finished() const;
+    bool in_stream() const;
+
+    std::vector<std::byte> operator()(std::span<const std::byte> data = {});
 
 private:
-    std::vector<std::byte> buffer_;
     bool running_ = false;
+    Buffer<std::byte> buf_;
     bz_stream stream_{};
 };
 
