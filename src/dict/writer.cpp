@@ -4,6 +4,7 @@
 #include <exception>
 #include <string_view>
 
+#include "dict/word.hpp"
 #include "utils/zstring_view.hpp"
 
 namespace komankondi::dict {
@@ -17,10 +18,10 @@ Writer::Writer(ZStringView path) :
              "CREATE TABLE word(word TEXT PRIMARY KEY, description TEXT NOT NULL) STRICT");
 }
 
-void Writer::add_word(std::string_view word, std::string_view description) {
+void Writer::add_word(const Word& word) {
     if (!op_add_word_)
         op_add_word_ = db_.prepare<void, std::string_view, std::string_view>("INSERT INTO word VALUES(?,?)");
-    op_add_word_.exec(word, description);
+    op_add_word_.exec(word.word, word.description);
 }
 
 void Writer::save() {

@@ -16,6 +16,7 @@
 #include "dictgen/cache.hpp"
 #include "dictgen/downloader.hpp"
 #include "dictgen/options.hpp"
+#include "dictgen/wikitext/extract.hpp"
 #include "dictgen/xml.hpp"
 #include "utils/config.hpp"
 #include "utils/exception.hpp"
@@ -143,7 +144,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                    })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
                                            tbb::filter_mode::serial_in_order,
-                                           [&unbzip](const std::vector<std::byte>& data) {
+                                           [&unbzip](std::vector<std::byte>&& data) {
                                                std::vector<std::byte> r = unbzip(data);
                                                while (true) {
                                                    std::vector<std::byte> more = unbzip();
@@ -155,7 +156,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                            })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
                                            tbb::filter_mode::serial_in_order,
-                                           [&dump_parser](const std::vector<std::byte>& data) {
+                                           [&dump_parser](std::vector<std::byte>&& data) {
                                                std::vector<std::pair<std::string, std::string>> r;
                                                dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
                                                            [&](xml::Select::Element&& el) {
@@ -175,13 +176,25 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                                            });
                                                return r;
                                            })
-                                   & tbb::make_filter<std::vector<std::pair<std::string, std::string>>, void>(
+                                   & tbb::make_filter<std::vector<std::pair<std::string, std::string>>, std::vector<dict::Word>>(
+                                           tbb::filter_mode::parallel,
+                                           [](std::vector<std::pair<std::string, std::string>>&& words) {
+                                               std::vector<dict::Word> r;
+                                               for (auto& [word, description] : words) {
+                                                   wikitext::extract_definitions(description);
+                                                   r.push_back({std::move(word)});
+
+                                                   exit(1);
+                                               }
+                                               return r;
+                                           })
+                                   & tbb::make_filter<std::vector<dict::Word>, void>(
                                            tbb::filter_mode::serial_out_of_order,
                                            [&total_words, &total_bytes, &last_stat_time, &last_stat_bytes, &last_stat_words, &dict](
-                                                   const std::vector<std::pair<std::string, std::string>>& words) {
-                                               for (const auto& [word, description] : words) {
+                                                   std::vector<dict::Word>&& words) {
+                                               for (const dict::Word& word : words) {
+                                                   dict.add_word(word);
                                                    ++total_words;
-                                                   dict.add_word(word, description);
 
                                                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                                                    if (now > last_stat_time + std::chrono::seconds{2}) {

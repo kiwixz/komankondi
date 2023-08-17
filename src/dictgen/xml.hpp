@@ -28,6 +28,7 @@ struct ParsingException : Exception {
     }
 };
 
+
 namespace detail {
 
 namespace using_pegtl {

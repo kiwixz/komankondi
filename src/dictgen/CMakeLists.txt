@@ -6,6 +6,8 @@ find_package(range-v3 REQUIRED)
 find_package(TBB REQUIRED)
 
 add_library(dictgen_
+    "wikitext/extract.cpp"
+
     "bzip.cpp"
     "cache.cpp"
     "downloader.cpp"
@@ -31,6 +33,7 @@ install(TARGETS dictgen)
 if (BUILD_TESTING)
     find_package(Catch2 REQUIRED)
     add_executable(test_dictgen
+        "test/wikitext.cpp"
         "test/xml.cpp"
     )
     target_link_libraries(test_dictgen dictgen_ Catch2::Catch2WithMain)
