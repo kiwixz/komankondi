@@ -9,5 +9,6 @@ namespace komankondi {
 
 FILE* fopen(const std::filesystem::path& path, ZStringView mode);
 void fsync(FILE* stream);
+bool isatty(FILE* stream);
 
 }  // namespace komankondi

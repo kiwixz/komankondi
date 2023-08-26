@@ -6,19 +6,38 @@
 #include <fmt/core.h>
 
 #include "utils/iequal.hpp"
+#include "utils/platform.hpp"
 
 namespace komankondi::log {
 namespace {
 
-void format_level(fmt::appender out, Level level) {
+void format_level(fmt::memory_buffer& buf, Level level) {
+    using namespace std::string_view_literals;
+
     switch (level) {
-    case Level::trace: fmt::format_to(out, fmt::fg(fmt::terminal_color::cyan), "TRACE: "); break;
-    case Level::debug: fmt::format_to(out, fmt::fg(fmt::terminal_color::bright_blue), "DEBUG: "); break;
+    case Level::trace:
+        buf.append(is_terminal() ? "\033[94m"sv : "<7>"sv);
+        buf.append("TRACE: "sv);
+        break;
+    case Level::debug:
+        buf.append(is_terminal() ? "\033[36m"sv : "<7>"sv);
+        buf.append("DEBUG: "sv);
+        break;
     case Level::info:
-    case Level::status: break;
-    case Level::warning: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_yellow), "WARNING: "); break;
-    case Level::error: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_red), "ERROR: "); break;
-    case Level::dev: fmt::format_to(out, fmt::emphasis::bold | fmt::fg(fmt::terminal_color::bright_magenta), "DEV: "); break;
+    case Level::status:
+        break;
+    case Level::warning:
+        buf.append(is_terminal() ? "\033[1;93m"sv : "<4>"sv);
+        buf.append("WARNING: "sv);
+        break;
+    case Level::error:
+        buf.append(is_terminal() ? "\033[1;91m"sv : "<3>"sv);
+        buf.append("ERROR: "sv);
+        break;
+    case Level::dev:
+        buf.append(is_terminal() ? "\033[1;95m"sv : "<5>"sv);
+        buf.append("DEV: "sv);
+        break;
     }
 }
 
@@ -44,6 +63,11 @@ Level& verbosity_mutable() {
 }  // namespace
 
 
+bool is_terminal() {
+    static bool r = isatty(stderr);
+    return r;
+}
+
 Level verbosity() {
     return verbosity_mutable();
 }
@@ -54,14 +78,19 @@ void set_verbosity(Level level) {
 
 
 bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args) {
-    if (level < verbosity())
+    if (level < verbosity() || (level == Level::status && !is_terminal()))
         return false;
 
     fmt::memory_buffer buf;
-    format_level(fmt::appender{buf}, level);
+    format_level(buf, level);
     fmt::vformat_to(fmt::appender{buf}, fmt, args);
-    buf.append(std::string_view{"\033[K"});
-    buf.push_back(level == Level::status ? '\r' : '\n');
+    if (is_terminal()) {
+        buf.append(std::string_view{"\033[K\033[0m"});
+        buf.push_back(level == Level::status ? '\r' : '\n');
+    }
+    else {
+        buf.push_back('\n');
+    }
     (void)std::fwrite(buf.data(), 1, buf.size(), stderr);
     return true;
 }

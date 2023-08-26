@@ -31,4 +31,11 @@ void fsync(FILE* stream) {
         throw SystemException{"could not synchronize file"};
 }
 
+bool isatty(FILE* stream) {
+    int fd = fileno(stream);
+    if (fd == -1)
+        return false;
+    return ::isatty(fd);
+}
+
 }  // namespace komankondi

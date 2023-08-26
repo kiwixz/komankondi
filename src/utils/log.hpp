@@ -17,6 +17,7 @@ enum class Level {
 };
 
 
+bool is_terminal();
 Level verbosity();
 void set_verbosity(Level level);
 
