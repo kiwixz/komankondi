@@ -1,13 +1,50 @@
-name: build
+name: ci
 on: [push, pull_request]
 
 jobs:
-  linux:
+  build_linux:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         buildtype: [release, dev, debug]
+    steps:
+    - name: setup
+      uses: actions/github-script@v6
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+    - name: install
+      run: |
+        sudo apt-get update
+        sudo apt-get install meson qtdeclarative5-dev
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: configure
+      env:
+        VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+      run: ./configure --buildtype=${{matrix.buildtype}} --flags=-Werror
+    - name: build
+      run: ninja -C build -k 0
+    - name: test
+      run: ninja -C build test
+    - name: dist
+      run: ./dist
+    - name: upload dist
+      uses: actions/upload-artifact@v3
+      with:
+        name: ubuntu-${{matrix.buildtype}}
+        path: build/komankondi.tar.xz
+
+  lint_linux:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        buildtype: [release, debug]
     steps:
     - name: setup
       uses: actions/github-script@v6
@@ -26,22 +63,11 @@ jobs:
     - name: configure
       env:
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-      run: ./configure --buildtype=${{matrix.buildtype}} --flags=-Werror
-    - name: build
-      run: ninja -C build -k 0
-    - name: dist
-      run: ./dist
-    - name: upload dist
-      uses: actions/upload-artifact@v3
-      with:
-        name: ubuntu-${{matrix.buildtype}}
-        path: build/komankondi.tar.xz
-    - name: test
-      run: ninja -C build test
+      run: ./configure --buildtype=${{matrix.buildtype}}
     - name: tidy
       run: ./lint
 
-  windows:
+  build_windows:
     runs-on: windows-2022
     strategy:
       fail-fast: false
@@ -57,7 +83,7 @@ jobs:
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.* black==23.7.* meson==1.2.*
+        pip install aqtinstall==3.1.* meson==1.2.*
         aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
@@ -72,6 +98,8 @@ jobs:
       run: python configure --buildtype=${{matrix.buildtype}} --flags=-Werror
     - name: build
       run: ninja -C build -k 0
+    - name: test
+      run: ninja -C build test
     - name: dist
       run: python dist
     - name: upload dist
@@ -79,7 +107,35 @@ jobs:
       with:
         name: windows-${{matrix.buildtype}}
         path: build/komankondi.zip
-    - name: test
-      run: ninja -C build test
+
+  lint_windows:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        buildtype: [release, debug]
+    steps:
+    - name: setup
+      uses: actions/github-script@v6
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+    - name: install
+      run: |
+        echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
+        pip install aqtinstall==3.1.* meson==1.2.*
+        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
+        echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: configure
+      env:
+        CXX: clang++
+        CXX_LD: lld
+        VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+      run: python configure --buildtype=${{matrix.buildtype}}
     - name: lint
-      run: python lint build clang-tidy black qmllint
+      run: python lint build clang-tidy qmllint
