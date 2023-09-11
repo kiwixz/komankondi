@@ -138,4 +138,4 @@ jobs:
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
       run: python configure --buildtype=${{matrix.buildtype}}
     - name: lint
-      run: python lint build clang-tidy qmllint
+      run: python lint clang-tidy qmllint

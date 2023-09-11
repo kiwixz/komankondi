@@ -108,14 +108,13 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--fix", "-f", action="store_true", help="Attempt to fix the problems")
+    parser.add_argument("--builddir", type=Path, default="build", help="Build directory")
     parser.add_argument("--threads", "-j", type=int, default=multiprocessing.cpu_count(), help="Number of threads")
-    parser.add_argument("builddir", nargs="?", type=Path, default="build", help="Build directory")
     parser.add_argument("tasks", nargs="*", choices=(*tasks, []), default=[], help="Tasks to run")
     args = parser.parse_args()
 
-    files = list(
-        filter(Path.exists, (Path(f) for f in subprocess.check_output(["git", "ls-files"], text=True).splitlines()))
-    )
+    files = [Path(f) for f in subprocess.check_output(["git", "ls-files"], text=True).splitlines()]
+    files = [f for f in files if f.exists()]
     todo = list(sum((tasks[t](args.fix, args.builddir, files) for t in args.tasks or tasks), []))
 
     total = len(todo)
