@@ -71,6 +71,7 @@ def configure_meson(build_dir, build_type, flags, vcpkg_toolchain):
     else:
         cxxflags += [
             "-g3",
+            "-fno-omit-frame-pointer",
             "-fstack-protector-strong",
             "-D_GLIBCXX_ASSERTIONS",
             "-U_FORTIFY_SOURCE",
