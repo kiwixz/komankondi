@@ -52,7 +52,7 @@ def configure_vcpkg(install_dir, build_type, toolchain):
 
 def configure_meson(build_dir, build_type, flags, vcpkg_toolchain):
     options = [f"--native-file={vcpkg_toolchain}", "--default-library=static"]
-    cxxflags = ["-march=x86-64-v2"]
+    cxxflags = ["-march=x86-64-v3"]
 
     if build_type == "debug":
         options += ["--optimization=g"]
