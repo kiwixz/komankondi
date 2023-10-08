@@ -1,0 +1,41 @@
+name: dictgen
+on:
+  schedule:
+    - cron: 0 3 3,22 * *
+  workflow_dispatch:
+
+jobs:
+  dict:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [enwiktionary, frwiktionary]
+    steps:
+    - name: setup
+      uses: actions/github-script@v6
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+    - name: install
+      run: |
+        sudo apt-get update
+        sudo apt-get install meson qtdeclarative5-dev
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: configure
+      env:
+        VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+      run: ./configure
+    - name: build
+      run: ninja -C build src/dictgen/komankondi-dictgen
+    - name: dictgen
+      run: build/src/dictgen/komankondi-dictgen ${{matrix.source}}
+    - name: upload dict
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.source}}
+        path: ~/.local/share/komankondi/${{matrix.source}}.dict
