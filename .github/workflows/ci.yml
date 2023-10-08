@@ -20,7 +20,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install meson qtdeclarative5-dev
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: configure
@@ -57,7 +57,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install black meson qtdeclarative5-dev
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: configure
@@ -83,11 +83,11 @@ jobs:
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.* meson==1.2.*
+        pip install aqtinstall==3.1.7 meson==1.2.2 ninja==1.11.1
         aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: configure
@@ -124,11 +124,11 @@ jobs:
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.* meson==1.2.*
+        pip install aqtinstall==3.1.7 meson==1.2.2 ninja==1.11.1
         aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: configure
