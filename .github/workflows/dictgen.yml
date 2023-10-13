@@ -33,9 +33,11 @@ jobs:
     - name: build
       run: ninja -C build src/dictgen/komankondi-dictgen
     - name: dictgen
-      run: build/src/dictgen/komankondi-dictgen ${{matrix.source}}
+      run: build/src/dictgen/komankondi-dictgen -o ${{matrix.source}}.dict ${{matrix.source}}
+    - name: compress dict
+      run: zstd -T0 ${{matrix.source}}.dict
     - name: upload dict
       uses: actions/upload-artifact@v3
       with:
         name: ${{matrix.source}}
-        path: ~/.local/share/komankondi/${{matrix.source}}.dict
+        path: ${{matrix.source}}.dict.zst
