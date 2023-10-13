@@ -32,7 +32,9 @@ int main(int argc, char** argv) {
         if (size_t i = opt.dictionary.find(source_placeholder); i != std::string::npos)
             opt.dictionary.replace(i, source_placeholder.size(), source);
 
-        std::filesystem::create_directories(std::filesystem::path(opt.dictionary).parent_path());
+        std::filesystem::path dictionary_path = opt.dictionary;
+        if (dictionary_path.has_parent_path())
+            std::filesystem::create_directories(dictionary_path.parent_path());
 
         constexpr std::string_view wiktionary_suffix = "wiktionary";
         if (source.ends_with(wiktionary_suffix)) {
