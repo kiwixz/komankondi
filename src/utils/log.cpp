@@ -98,13 +98,7 @@ bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args) {
 }  // namespace komankondi::log
 
 
-const char* fmt::formatter<komankondi::log::Hexdump>::parse(const format_parse_context& ctx) {
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-        throw format_error{"invalid hexdump format specification"};
-    return ctx.begin();
-}
-
-fmt::appender fmt::formatter<komankondi::log::Hexdump>::format(const komankondi::log::Hexdump& a, format_context& ctx) {
+fmt::appender fmt::formatter<komankondi::log::Hexdump>::format(const komankondi::log::Hexdump& a, format_context& ctx) const {
     constexpr size_t bytes_per_line = 16;
 
     for (size_t offset = 0; offset < a.data.size(); offset += bytes_per_line) {

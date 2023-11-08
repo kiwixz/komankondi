@@ -3,6 +3,7 @@
 #include <span>
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 namespace komankondi::log {
 
@@ -77,6 +78,11 @@ struct Hexdump {
 
 template <>
 struct fmt::formatter<komankondi::log::Hexdump> {
-    const char* parse(const format_parse_context& ctx);
-    fmt::appender format(const komankondi::log::Hexdump& a, format_context& ctx);
+    fmt::appender format(const komankondi::log::Hexdump& a, format_context& ctx) const;
+
+    constexpr const char* parse(const format_parse_context& ctx) {
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+            throw fmt::format_error{"invalid format"};
+        return ctx.begin();
+    }
 };
