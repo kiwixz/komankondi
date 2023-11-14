@@ -129,9 +129,9 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                 if (now > last_stat_time + std::chrono::seconds{1}) {
                     int total_bytes_now = total_bytes.load();
                     double delta = std::chrono::duration<double>(now - last_stat_time).count();
-                    log::status("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
-                                total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
-                                total_words, (total_words - last_stat_words) / delta);
+                    log::info("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
+                              total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
+                              total_words, (total_words - last_stat_words) / delta);
                     last_stat_time = now;
                     last_stat_bytes = total_bytes_now;
                     last_stat_words = total_words;

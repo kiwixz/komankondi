@@ -16,26 +16,25 @@ void format_level(fmt::memory_buffer& buf, Level level) {
 
     switch (level) {
     case Level::trace:
-        buf.append(is_terminal() ? "\033[94m"sv : "<7>"sv);
+        buf.append(with_colors() ? "\033[94m"sv : "<7>"sv);
         buf.append("TRACE: "sv);
         break;
     case Level::debug:
-        buf.append(is_terminal() ? "\033[36m"sv : "<7>"sv);
+        buf.append(with_colors() ? "\033[36m"sv : "<7>"sv);
         buf.append("DEBUG: "sv);
         break;
     case Level::info:
-    case Level::status:
         break;
     case Level::warning:
-        buf.append(is_terminal() ? "\033[1;93m"sv : "<4>"sv);
+        buf.append(with_colors() ? "\033[1;93m"sv : "<4>"sv);
         buf.append("WARNING: "sv);
         break;
     case Level::error:
-        buf.append(is_terminal() ? "\033[1;91m"sv : "<3>"sv);
+        buf.append(with_colors() ? "\033[1;91m"sv : "<3>"sv);
         buf.append("ERROR: "sv);
         break;
     case Level::dev:
-        buf.append(is_terminal() ? "\033[1;95m"sv : "<5>"sv);
+        buf.append(with_colors() ? "\033[1;95m"sv : "<5>"sv);
         buf.append("DEV: "sv);
         break;
     }
@@ -48,8 +47,6 @@ Level& verbosity_mutable() {
                 return Level::trace;
             if (iequal(env, "debug"))
                 return Level::debug;
-            if (iequal(env, "status"))
-                return Level::status;
             if (iequal(env, "warning"))
                 return Level::warning;
             if (iequal(env, "error"))
@@ -63,8 +60,8 @@ Level& verbosity_mutable() {
 }  // namespace
 
 
-bool is_terminal() {
-    static bool r = isatty(stderr);
+bool with_colors() {
+    static const bool r = isatty(stderr);
     return r;
 }
 
@@ -78,19 +75,15 @@ void set_verbosity(Level level) {
 
 
 bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args) {
-    if (level < verbosity() || (level == Level::status && !is_terminal()))
+    if (level < verbosity())
         return false;
 
     fmt::memory_buffer buf;
     format_level(buf, level);
     fmt::vformat_to(fmt::appender{buf}, fmt, args);
-    if (is_terminal()) {
-        buf.append(std::string_view{"\033[K\033[0m"});
-        buf.push_back(level == Level::status ? '\r' : '\n');
-    }
-    else {
-        buf.push_back('\n');
-    }
+    if (with_colors())
+        buf.append(std::string_view{"\033[0m"});
+    buf.push_back('\n');
     (void)std::fwrite(buf.data(), 1, buf.size(), stderr);
     return true;
 }

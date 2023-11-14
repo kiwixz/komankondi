@@ -11,14 +11,13 @@ enum class Level {
     trace,
     debug,
     info,
-    status,
     warning,
     error,
     dev,
 };
 
 
-bool is_terminal();
+bool with_colors();
 Level verbosity();
 void set_verbosity(Level level);
 
@@ -41,10 +40,6 @@ bool debug(fmt::format_string<Args...> fmt, Args&&... args) {
 template <typename... Args>
 bool info(fmt::format_string<Args...> fmt, Args&&... args) {
     return log(Level::info, fmt, std::forward<Args>(args)...);
-}
-template <typename... Args>
-bool status(fmt::format_string<Args...> fmt, Args&&... args) {
-    return log(Level::status, fmt, std::forward<Args>(args)...);
 }
 template <typename... Args>
 bool warn(fmt::format_string<Args...> fmt, Args&&... args) {

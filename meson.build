@@ -7,10 +7,6 @@ project('komankondi', 'cpp',
 
 cflags = []
 
-if get_option('debug')
-    cflags += '-DDEBUG'
-endif
-
 if build_machine.system() == 'windows'
     cflags += ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
 endif
