@@ -10,7 +10,7 @@ from pathlib import Path
 
 def run(args):
     print(">", shlex.join(str(a) for a in args), flush=True)
-    r = subprocess.run(args).returncode
+    r = subprocess.run(args, check=False).returncode
     if r != 0:
         sys.exit(r)
 
@@ -34,7 +34,7 @@ def configure_vcpkg(install_dir, build_type, toolchain):
         ]
     )
 
-    with open(toolchain, "w") as f:
+    with open(toolchain, "w", encoding="utf8") as f:
         f.write(
             "\n".join(
                 [
@@ -89,14 +89,14 @@ def configure_meson(build_dir, build_type, flags, vcpkg_toolchain):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--buildtype", default="release", choices=["release", "dev", "debug"])
-    parser.add_argument("--flags", help="Compiler flags")
-    parser.add_argument("builddir", nargs="?", type=Path, default="build", help="Build directory")
+    parser.add_argument("--flags", help="compiler flags")
+    parser.add_argument("builddir", nargs="?", type=Path, default="build", help="build directory")
     args = parser.parse_args()
 
     shutil.rmtree(args.builddir, True)
 
     args.builddir.mkdir()
-    with open(args.builddir / ".gitignore", "w") as f:
+    with open(args.builddir / ".gitignore", "w", encoding="utf8") as f:
         f.write("*")
 
     vcpkg_toolchain = args.builddir / "meson-vcpkg.ini"

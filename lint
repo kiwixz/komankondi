@@ -9,89 +9,70 @@ import multiprocessing
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
-@dataclass
-class TaskResult:
-    name: str
-    success: bool
-    comment: Optional[str]
+class Linter:
+    def __init__(self, files, check_cmd, fix_cmd=None):
+        self.files = files
+        self.check_cmd = check_cmd
+        self.fix_cmd = fix_cmd
+
+    def check(self, path):
+        r = subprocess.run(
+            [arg.format(path) for arg in self.check_cmd],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        return None if r.returncode == 0 else r.stdout
+
+    def fix(self, path):
+        if not self.fix_cmd:
+            return self.check(path)
+
+        r = subprocess.run(
+            [arg.format(path) for arg in self.fix_cmd],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        return None if r.returncode == 0 else r.stdout
+
+    def match(self, path: Path):
+        return str(path) in self.files or path.suffix in self.files
 
 
-def make_patch(path, original, formatted):
-    def colorize(line):
-        if line[0] == "+":
-            return f"\033[32m{line}\033[0m"
-        elif line[0] == "-":
-            return f"\033[31m{line}\033[0m"
-        else:
-            return line
-
-    patch = list(difflib.unified_diff(original.splitlines(), formatted.splitlines(), str(path), "formatted"))
-    return "".join(patch[:3]) + "".join(f"{colorize(line)}\n" for line in patch[3:])
-
-
-def lint_clang_format(fix, build_dir, files):
-    def _check_file(path):
+class Formatter(Linter):
+    def check(self, path):
         with open(path, encoding="utf8") as f:
             original = f.read()
-        formatted = subprocess.check_output(["clang-format", "-assume-filename", path], input=original, text=True)
-        return TaskResult(f"clang-format: {path}", original == formatted, make_patch(path, original, formatted))
+        r = subprocess.run(
+            [arg.format(path) for arg in self.check_cmd],
+            check=False,
+            text=True,
+            input=original,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        if r.returncode != 0:
+            return r.stdout
 
-    def _format_file(path):
-        r = subprocess.run(["clang-format", "-i", path])
-        return TaskResult(f"clang-format: {path}", r.returncode == 0, None)
+        patch = list(difflib.unified_diff(original.splitlines(), r.stdout.splitlines()))[2:]
+        if not patch:
+            return None
 
-    todo_files = filter(lambda f: f.suffix in (".cpp", ".hpp"), files)
-    return [functools.partial(_format_file if fix else _check_file, f) for f in todo_files]
+        def colorize(line):
+            if line[0] == "+":
+                return f"\033[32m{line}\033[0m"
+            elif line[0] == "-":
+                return f"\033[31m{line}\033[0m"
+            else:
+                return line
 
-
-def lint_clang_tidy(fix, build_dir, files):
-    cmd = [
-        "clang-tidy",
-        "--quiet",
-        "--use-color",
-        "--warnings-as-errors=*",
-        "--extra-arg=-Wno-unknown-warning-option",
-        "-p",
-        build_dir,
-    ]
-    if fix:
-        cmd += ["--fix-errors", "--fix-notes"]
-
-    def _lint(path):
-        r = subprocess.run([*cmd, path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-        return TaskResult(f"clang-tidy: {path}", r.returncode == 0, r.stdout)
-
-    todo_files = filter(lambda f: f.suffix == ".cpp", files)
-    return [functools.partial(_lint, f) for f in todo_files]
-
-
-def lint_black(fix, build_dir, files):
-    def _check_file(path):
-        with open(path, encoding="utf8") as f:
-            original = f.read()
-        formatted = subprocess.check_output(["black", "-q", "-"], input=original, text=True)
-        return TaskResult(f"black: {path}", original == formatted, make_patch(path, original, formatted))
-
-    def _format_file(path):
-        r = subprocess.run(["black", "-q", path])
-        return TaskResult(f"black: {path}", r.returncode == 0, None)
-
-    todo_files = ["configure", "dist", "lint"] + list(filter(lambda f: f.suffix == ".py", files))
-    return [functools.partial(_format_file if fix else _check_file, f) for f in todo_files]
-
-
-def lint_qmllint(fix, build_dir, files):
-    def _lint(path):
-        r = subprocess.run(["qmllint", path], stderr=subprocess.PIPE, text=True)
-        return TaskResult(f"qmllint: {path}", r.returncode == 0, r.stderr)
-
-    todo_files = filter(lambda f: f.suffix == ".qml", files)
-    return [functools.partial(_lint, f) for f in todo_files]
+        return "".join(f"{colorize(line)}\n" for line in patch)
 
 
 def print_error(msg):
@@ -100,22 +81,58 @@ def print_error(msg):
 
 def main():
     tasks = {
-        "clang-format": lint_clang_format,
-        "clang-tidy": lint_clang_tidy,
-        "black": lint_black,
-        "qmllint": lint_qmllint,
+        "clang-format": Formatter(
+            [".cpp", ".hpp"],
+            ["clang-format", "-assume-filename", "{}"],
+            ["clang-format", "-i", "{}"],
+        ),
+        "clang-tidy": Linter(
+            [".cpp"],
+            [
+                "clang-tidy",
+                "--quiet",
+                "--use-color",
+                "--warnings-as-errors=*",
+                "--extra-arg=-Wno-unknown-warning-option",
+                "-p=build",
+                "{}",
+            ],
+            [
+                "clang-tidy",
+                "--quiet",
+                "--use-color",
+                "--warnings-as-errors=*",
+                "--extra-arg=-Wno-unknown-warning-option",
+                "-p=build",
+                "--fix-errors",
+                "--fix-notes",
+                "{}",
+            ],
+        ),
+        "pylint": Linter(["configure", "dist", "lint", ".py"], ["pylint", "--score=n", "{}"]),
+        "black": Formatter(
+            ["configure", "dist", "lint", ".py"],
+            ["black", "--quiet", "-"],
+            ["black", "--quiet", "{}"],
+        ),
+        "qmllint": Linter([".qml"], ["qmllint", "{}"]),
     }
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fix", "-f", action="store_true", help="Attempt to fix the problems")
-    parser.add_argument("--builddir", type=Path, default="build", help="Build directory")
-    parser.add_argument("--threads", "-j", type=int, default=multiprocessing.cpu_count(), help="Number of threads")
-    parser.add_argument("tasks", nargs="*", choices=(*tasks, []), default=[], help="Tasks to run")
+    parser.add_argument("--fix", "-f", action="store_true", help="attempt to fix the problems")
+    parser.add_argument("--threads", "-j", type=int, default=multiprocessing.cpu_count(), help="number of threads")
+    parser.add_argument("tasks", nargs="*", choices=(*tasks, []), default=[], help="tasks to run")
     args = parser.parse_args()
 
     files = [Path(f) for f in subprocess.check_output(["git", "ls-files"], text=True).splitlines()]
     files = [f for f in files if f.exists()]
-    todo = list(sum((tasks[t](args.fix, args.builddir, files) for t in args.tasks or tasks), []))
+
+    todo = list(
+        functools.partial(lambda f, t: (f, t, tasks[t].fix(f) if args.fix else tasks[t].check(f)), file, task)
+        for file in files
+        for task in args.tasks or tasks
+        if tasks[task].match(file)
+    )
 
     total = len(todo)
     if total == 0:
@@ -128,14 +145,14 @@ def main():
         done = 0
         for future in concurrent.futures.as_completed(executor.submit(op) for op in todo):
             done += 1
-            r = future.result()
-            if r.success:
-                print(f"[{done:{total_digits}}/{total}] passed: {r.name}")
+            file, task, error = future.result()
+            if error is None:
+                print(f"[{done:{total_digits}}/{total}] passed {task}: {file}")
             else:
                 failed += 1
-                print_error(f"[{done:{total_digits}}/{total}] FAILED: {r.name}")
-                if r.comment:
-                    print(r.comment)
+                print_error(f"[{done:{total_digits}}/{total}] FAILED {task}: {file}")
+                if error:
+                    print(error)
             sys.stdout.flush()
 
     if failed:

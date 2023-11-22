@@ -11,7 +11,7 @@ from pathlib import Path
 
 def run(args, **kwargs):
     print(">", shlex.join(str(a) for a in args), flush=True)
-    r = subprocess.run(args, **kwargs)
+    r = subprocess.run(args, **kwargs, check=False)
     if r.returncode != 0:
         sys.exit(r.returncode)
     return r
@@ -19,12 +19,14 @@ def run(args, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("builddir", nargs="?", type=Path, default="build", help="Build directory")
+    parser.add_argument("builddir", nargs="?", type=Path, default="build", help="build directory")
     args = parser.parse_args()
 
     options = {
         opt["name"]: opt["value"]
-        for opt in json.loads(run(["meson", "introspect", args.builddir, "--buildoptions"], capture_output=True).stdout)
+        for opt in json.loads(
+            run(["meson", "introspect", args.builddir, "--buildoptions"], stdout=subprocess.PIPE).stdout
+        )
     }
 
     base_dist_dir = args.builddir / "dist"

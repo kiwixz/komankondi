@@ -55,7 +55,7 @@ jobs:
     - name: install
       run: |
         sudo apt-get update
-        sudo apt-get install black meson qtdeclarative5-dev
+        sudo apt-get install black meson pylint qtdeclarative5-dev
     - name: checkout
       uses: actions/checkout@v4
       with:
@@ -64,7 +64,7 @@ jobs:
       env:
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
       run: ./configure --buildtype=${{matrix.buildtype}}
-    - name: tidy
+    - name: lint
       run: ./lint
 
   build_windows:
@@ -138,4 +138,4 @@ jobs:
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
       run: python configure --buildtype=${{matrix.buildtype}}
     - name: lint
-      run: python lint clang-tidy qmllint
+      run: python lint clang-tidy
