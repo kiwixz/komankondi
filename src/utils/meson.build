@@ -22,6 +22,7 @@ utils = declare_dependency(dependencies: utils_deps, link_with: utils_lib)
 
 test('utils', executable('utils-test', [
         'test/log.cpp',
+        'test/scope_exit.cpp',
         'test/zstring_view.cpp',
     ],
     dependencies: [utils_deps, catch2],
