@@ -50,7 +50,7 @@ struct ConsumeQueue {
     }
 
 private:
-    int max_size_ = std::min<int>(std::thread::hardware_concurrency(), 8);
+    int max_size_ = std::max<int>(std::thread::hardware_concurrency(), 8);
 
     bool closed_ = false;
     std::mutex mutex_;
