@@ -24,7 +24,7 @@ struct File {
         read = 1 << 0,
         write = 1 << 1,
         truncate = 1 << 2,  // implies write
-        append = 1 << 3,    // implies write
+        append = 1 << 3,  // implies write
 
         binary = 1 << 4,
     };
