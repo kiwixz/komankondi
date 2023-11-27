@@ -7,6 +7,7 @@ utils_deps = [
 
 utils_lib = library('utils', [
         'cli.cpp',
+        'config.cpp',
         'database.cpp',
         'file.cpp',
         'hex.cpp',

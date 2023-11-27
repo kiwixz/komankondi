@@ -17,6 +17,7 @@
 #include "dictgen/downloader.hpp"
 #include "dictgen/options.hpp"
 #include "dictgen/xml.hpp"
+#include "utils/config.hpp"
 #include "utils/exception.hpp"
 #include "utils/log.hpp"
 #include "utils/parse.hpp"
@@ -125,72 +126,73 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     int last_stat_bytes = 0;
     int last_stat_words = 0;
 
-    tbb::parallel_pipeline(10, tbb::make_filter<void, std::vector<std::byte>>(
-                                       tbb::filter_mode::serial_in_order,
-                                       [&total_bytes, &fetch](tbb::flow_control& fc) {
-                                           std::optional<std::vector<std::byte>> data = fetch();
-                                           if (!data) {
-                                               fc.stop();
-                                               return std::vector<std::byte>{};
-                                           }
-                                           total_bytes.fetch_add(data->size(), std::memory_order::relaxed);
-                                           return std::move(*data);
-                                       })
-                                       & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
-                                               tbb::filter_mode::serial_in_order,
-                                               [&unbzip](std::span<const std::byte> data) {
-                                                   std::vector<std::byte> r = unbzip(data);
-                                                   while (true) {
-                                                       std::vector<std::byte> more = unbzip();
-                                                       if (more.empty())
-                                                           break;
-                                                       r.insert(r.end(), more.begin(), more.end());
+    tbb::parallel_pipeline(default_parallel_queue_size(),
+                           tbb::make_filter<void, std::vector<std::byte>>(
+                                   tbb::filter_mode::serial_in_order,
+                                   [&total_bytes, &fetch](tbb::flow_control& fc) {
+                                       std::optional<std::vector<std::byte>> data = fetch();
+                                       if (!data) {
+                                           fc.stop();
+                                           return std::vector<std::byte>{};
+                                       }
+                                       total_bytes.fetch_add(data->size(), std::memory_order::relaxed);
+                                       return std::move(*data);
+                                   })
+                                   & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
+                                           tbb::filter_mode::serial_in_order,
+                                           [&unbzip](const std::vector<std::byte>& data) {
+                                               std::vector<std::byte> r = unbzip(data);
+                                               while (true) {
+                                                   std::vector<std::byte> more = unbzip();
+                                                   if (more.empty())
+                                                       break;
+                                                   r.insert(r.end(), more.begin(), more.end());
+                                               }
+                                               return r;
+                                           })
+                                   & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
+                                           tbb::filter_mode::serial_in_order,
+                                           [&dump_parser](const std::vector<std::byte>& data) {
+                                               std::vector<std::pair<std::string, std::string>> r;
+                                               dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
+                                                           [&](xml::Select::Element&& el) {
+                                                               if (el.count("title") != 1
+                                                                   || el.count("ns") != 1
+                                                                   || el.count("revision/text") != 1)
+                                                               {
+                                                                   log::warn("Ignoring dump page with missing data");
+                                                                   return;
+                                                               }
+
+                                                               if (el.find("ns")->second != "0")  // not a word
+                                                                   return;
+
+                                                               r.emplace_back(std::move(el.find("title")->second),
+                                                                              std::move(el.find("revision/text")->second));
+                                                           });
+                                               return r;
+                                           })
+                                   & tbb::make_filter<std::vector<std::pair<std::string, std::string>>, void>(
+                                           tbb::filter_mode::serial_out_of_order,
+                                           [&total_words, &total_bytes, &last_stat_time, &last_stat_bytes, &last_stat_words, &dict](
+                                                   const std::vector<std::pair<std::string, std::string>>& words) {
+                                               for (const auto& [word, description] : words) {
+                                                   ++total_words;
+                                                   dict.add_word(word, description);
+
+                                                   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                                                   if (now > last_stat_time + std::chrono::seconds{2}) {
+                                                       int total_bytes_now = total_bytes.load(std::memory_order::relaxed);
+                                                       double delta = std::chrono::duration<double>(now - last_stat_time).count();
+                                                       log::info("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
+                                                                 total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
+                                                                 total_words, (total_words - last_stat_words) / delta);
+                                                       last_stat_time = now;
+                                                       last_stat_bytes = total_bytes_now;
+                                                       last_stat_words = total_words;
                                                    }
-                                                   return r;
-                                               })
-                                       & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
-                                               tbb::filter_mode::serial_in_order,
-                                               [&dump_parser](std::span<const std::byte> data) {
-                                                   std::vector<std::pair<std::string, std::string>> r;
-                                                   dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
-                                                               [&](xml::Select::Element&& el) {
-                                                                   if (el.count("title") != 1
-                                                                       || el.count("ns") != 1
-                                                                       || el.count("revision/text") != 1)
-                                                                   {
-                                                                       log::warn("Ignoring dump page with missing data");
-                                                                       return;
-                                                                   }
-
-                                                                   if (el.find("ns")->second != "0")
-                                                                       return;
-
-                                                                   r.emplace_back(std::move(el.find("title")->second),
-                                                                                  std::move(el.find("revision/text")->second));
-                                                               });
-                                                   return r;
-                                               })
-                                       & tbb::make_filter<std::vector<std::pair<std::string, std::string>>, void>(
-                                               tbb::filter_mode::serial_out_of_order,
-                                               [&total_words, &total_bytes, &last_stat_time, &last_stat_bytes, &last_stat_words, &dict](
-                                                       const std::vector<std::pair<std::string, std::string>>& words) {
-                                                   for (const auto& [word, description] : words) {
-                                                       ++total_words;
-                                                       dict.add_word(word, description);
-
-                                                       std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-                                                       if (now > last_stat_time + std::chrono::seconds{2}) {
-                                                           int total_bytes_now = total_bytes.load(std::memory_order::relaxed);
-                                                           double delta = std::chrono::duration<double>(now - last_stat_time).count();
-                                                           log::info("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
-                                                                     total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
-                                                                     total_words, (total_words - last_stat_words) / delta);
-                                                           last_stat_time = now;
-                                                           last_stat_bytes = total_bytes_now;
-                                                           last_stat_words = total_words;
-                                                       }
-                                                   }
-                                               }));
+                                               }
+                                           }));
 
     if (!unbzip.finished())
         throw Exception{"Wiktionary data ends with an unfinished bzip stream"};

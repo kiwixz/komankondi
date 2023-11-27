@@ -5,6 +5,7 @@
 
 #include <bzlib.h>
 
+#include "utils/config.hpp"
 #include "utils/exception.hpp"
 #include "utils/log.hpp"
 
@@ -33,7 +34,7 @@ std::vector<std::byte> BzipDecompressor::operator()(std::span<const std::byte> d
     stream_.avail_in = buf_.size();
 
     std::vector<std::byte> r;
-    r.resize(2000000);
+    r.resize(default_buffer_size);
     stream_.next_out = reinterpret_cast<char*>(r.data());
     stream_.avail_out = r.size();
 

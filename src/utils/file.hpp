@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "utils/config.hpp"
 #include "utils/exception.hpp"
 #include "utils/zstring_view.hpp"
 
@@ -37,7 +38,7 @@ struct File {
     void sync();
 
     template <typename T = std::byte>
-    std::vector<T> read(int size = 2000000 / sizeof(T)) {
+    std::vector<T> read(int size = default_buffer_size / sizeof(T)) {
         std::vector<T> r;
         r.resize(size);
         r.resize(std::fread(r.data(), sizeof(T), r.size(), stream_.get()));

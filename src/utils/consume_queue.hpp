@@ -7,6 +7,8 @@
 #include <queue>
 #include <thread>
 
+#include "utils/config.hpp"
+
 namespace komankondi {
 
 /// Thread-safe
@@ -50,7 +52,7 @@ struct ConsumeQueue {
     }
 
 private:
-    int max_size_ = std::max<int>(std::thread::hardware_concurrency(), 8);
+    int max_size_ = default_parallel_queue_size();
 
     bool closed_ = false;
     std::mutex mutex_;
