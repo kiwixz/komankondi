@@ -3,11 +3,12 @@ on: [push, pull_request]
 
 jobs:
   build_linux:
-    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         buildtype: [release, dev, debug]
+    runs-on: ubuntu-latest
+    container: "debian:bookworm"
     steps:
     - name: setup
       uses: actions/github-script@v6
@@ -17,8 +18,9 @@ jobs:
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
     - name: install
       run: |
-        sudo apt-get update
-        sudo apt-get install meson qtdeclarative5-dev
+        apt-get update
+        apt-get -y install g++ git meson ninja-build python3 qtdeclarative5-dev  \
+          `#vcpkg:` cmake curl make pkg-config zip
     - name: checkout
       uses: actions/checkout@v4
       with:
@@ -36,15 +38,16 @@ jobs:
     - name: upload dist
       uses: actions/upload-artifact@v3
       with:
-        name: ubuntu-${{matrix.buildtype}}
+        name: debian-${{matrix.buildtype}}
         path: build/komankondi.tar.xz
 
   lint_linux:
-    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         buildtype: [release, debug]
+    runs-on: ubuntu-22.04
+    container: "debian:bookworm"
     steps:
     - name: setup
       uses: actions/github-script@v6
@@ -54,8 +57,10 @@ jobs:
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
     - name: install
       run: |
-        sudo apt-get update
-        sudo apt-get install black meson pylint qtdeclarative5-dev
+        apt-get update
+        apt-get -y install g++ git meson ninja-build python3 qtdeclarative5-dev  \
+          `#vcpkg:` cmake curl make pkg-config zip  \
+          `#lint:` black clang-format clang-tidy pylint
     - name: checkout
       uses: actions/checkout@v4
       with:
@@ -65,14 +70,16 @@ jobs:
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
       run: ./configure --buildtype=${{matrix.buildtype}}
     - name: lint
-      run: ./lint
+      run: |
+        chown $(id -u) .
+        ./lint
 
   build_windows:
-    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
         buildtype: [release, dev, debug]
+    runs-on: windows-latest
     steps:
     - name: setup
       uses: actions/github-script@v6
@@ -109,11 +116,11 @@ jobs:
         path: build/komankondi.zip
 
   lint_windows:
-    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
         buildtype: [release, debug]
+    runs-on: windows-latest
     steps:
     - name: setup
       uses: actions/github-script@v6
