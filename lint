@@ -109,9 +109,9 @@ def main():
                 "{}",
             ],
         ),
-        "pylint": Linter(["configure", "dist", "lint", ".py"], ["pylint", "--score=n", "{}"]),
+        "pylint": Linter(["dist", "lint", ".py"], ["pylint", "--score=n", "{}"]),
         "black": Formatter(
-            ["configure", "dist", "lint", ".py"],
+            ["dist", "lint", ".py"],
             ["black", "--quiet", "-"],
             ["black", "--quiet", "{}"],
         ),
@@ -124,15 +124,15 @@ def main():
     parser.add_argument("tasks", nargs="*", choices=(*tasks, []), default=[], help="tasks to run")
     args = parser.parse_args()
 
-    files = [Path(f) for f in subprocess.check_output(["git", "ls-files"], text=True).splitlines()]
+    files = (Path(f) for f in subprocess.check_output(["git", "ls-files"], text=True).splitlines())
     files = [f for f in files if f.exists()]
 
-    todo = list(
+    todo = [
         functools.partial(lambda f, t: (f, t, tasks[t].fix(f) if args.fix else tasks[t].check(f)), file, task)
         for file in files
         for task in args.tasks or tasks
         if tasks[task].match(file)
-    )
+    ]
 
     total = len(todo)
     if total == 0:

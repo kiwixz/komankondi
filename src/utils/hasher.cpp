@@ -7,7 +7,7 @@
 #include "utils/exception.hpp"
 #include "utils/zstring_view.hpp"
 
-namespace komankondi::dictgen {
+namespace komankondi {
 
 Hasher::Hasher(ZStringView algorithm) {
     impl_.reset(EVP_MD_fetch(nullptr, algorithm.data(), nullptr));
@@ -32,7 +32,7 @@ std::vector<std::byte> Hasher::finish() {
     r.resize(EVP_MAX_MD_SIZE);
     unsigned size = r.size();
     if (!EVP_DigestFinal_ex(ctx_.get(), reinterpret_cast<unsigned char*>(r.data()), &size))
-        throw Exception{"could not update digest"};
+        throw Exception{"could not finish digest"};
     r.resize(size);
     return r;
 }
@@ -42,7 +42,7 @@ void Hasher::reset() {
         throw Exception{"could not reset digest"};
 }
 
-}  // namespace komankondi::dictgen
+}  // namespace komankondi
 
 
 void std::default_delete<EVP_MD>::operator()(EVP_MD* ptr) const {

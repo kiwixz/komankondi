@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        buildtype: [release, dev, debug]
+        buildtype: [Release, RelWithDebInfo, Debug]
     runs-on: ubuntu-latest
     container: "debian:bookworm"
     steps:
@@ -19,16 +19,17 @@ jobs:
     - name: install
       run: |
         apt-get update
-        apt-get -y install g++ git meson ninja-build python3 qtdeclarative5-dev  \
-          `#vcpkg:` cmake curl make pkg-config zip
+        apt-get -y install cmake g++ git ninja-build python3 qtdeclarative5-dev  \
+          `#vcpkg:` curl make pkg-config zip
     - name: checkout
       uses: actions/checkout@v4
       with:
         submodules: true
     - name: configure
       env:
+        CXXFLAGS: -Werror
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-      run: ./configure --buildtype=${{matrix.buildtype}} --flags=-Werror
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{matrix.buildtype}}
     - name: build
       run: ninja -C build -k 0
     - name: test
@@ -45,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        buildtype: [release, debug]
+        buildtype: [Release, Debug]
     runs-on: ubuntu-22.04
     container: "debian:bookworm"
     steps:
@@ -58,8 +59,8 @@ jobs:
     - name: install
       run: |
         apt-get update
-        apt-get -y install g++ git meson ninja-build python3 qtdeclarative5-dev  \
-          `#vcpkg:` cmake curl make pkg-config zip  \
+        apt-get -y install cmake g++ git ninja-build python3 qtdeclarative5-dev  \
+          `#vcpkg:` curl make pkg-config zip  \
           `#lint:` black clang-format clang-tidy pylint
     - name: checkout
       uses: actions/checkout@v4
@@ -67,8 +68,9 @@ jobs:
         submodules: true
     - name: configure
       env:
+        CXXFLAGS: -Werror
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-      run: ./configure --buildtype=${{matrix.buildtype}}
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{matrix.buildtype}}
     - name: lint
       run: |
         chown $(id -u) .
@@ -78,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        buildtype: [release, dev, debug]
+        buildtype: [Release, RelWithDebInfo, Debug]
     runs-on: windows-latest
     steps:
     - name: setup
@@ -90,7 +92,7 @@ jobs:
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.7 meson==1.2.2 ninja==1.11.1
+        pip install aqtinstall==3.1.7 ninja==1.11.1
         aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
@@ -100,9 +102,9 @@ jobs:
     - name: configure
       env:
         CXX: clang++
-        CXX_LD: lld
+        CXXFLAGS: -Werror
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-      run: python configure --buildtype=${{matrix.buildtype}} --flags=-Werror
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{matrix.buildtype}}
     - name: build
       run: ninja -C build -k 0
     - name: test
@@ -119,7 +121,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        buildtype: [release, debug]
+        buildtype: [Release, Debug]
     runs-on: windows-latest
     steps:
     - name: setup
@@ -131,7 +133,7 @@ jobs:
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.7 meson==1.2.2 ninja==1.11.1
+        pip install aqtinstall==3.1.7 ninja==1.11.1
         aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
         echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
@@ -141,8 +143,8 @@ jobs:
     - name: configure
       env:
         CXX: clang++
-        CXX_LD: lld
+        CXXFLAGS: -Werror
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-      run: python configure --buildtype=${{matrix.buildtype}}
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{matrix.buildtype}}
     - name: lint
       run: python lint clang-tidy

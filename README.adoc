@@ -5,13 +5,13 @@ komankondi is a game with one simple premise: you have to guess a word given its
 
 == Compiling
 
-The game is expected to build on Linux and Windows; with the following commands:
+The game is expected to build on at least Linux and Windows; with the following commands:
 ----
-python3 configure
-meson compile -C build
+cmake -G Ninja -B build
+ninja -C build
 ----
 
-You can also skip the `configure` script and directly call `meson setup` if you want more control.
+This will attempt to install most dependencies via vcpkg and build the project with recommended optimizations.  You can customize this behavior via CMake options.
 
 
 == Dictionary

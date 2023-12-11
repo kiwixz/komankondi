@@ -20,7 +20,7 @@ struct std::default_delete<EVP_MD_CTX> {
 };
 
 
-namespace komankondi::dictgen {
+namespace komankondi {
 
 struct Hasher {
     Hasher(ZStringView algorithm);
@@ -34,4 +34,4 @@ private:
     std::unique_ptr<EVP_MD_CTX> ctx_;
 };
 
-}  // namespace komankondi::dictgen
+}  // namespace komankondi
