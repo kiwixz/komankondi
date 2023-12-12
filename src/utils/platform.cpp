@@ -8,12 +8,23 @@
 
 #ifdef _WIN32
 #  include <io.h>
-constexpr auto fsync = _commit;
 #else
 #  include <unistd.h>
 #endif
 
 namespace komankondi {
+namespace {
+
+int fsync(int fd) {
+#ifdef _WIN32
+    return _commit(fd);
+#else
+    return ::fsync(fd);
+#endif
+}
+
+}  // namespace
+
 
 FILE* fopen(const std::filesystem::path& path, ZStringView mode) {
 #ifdef _WIN32
@@ -27,7 +38,7 @@ void fsync(FILE* stream) {
     int fd = fileno(stream);
     if (fd == -1)
         throw SystemException{"could not get file descriptor of stream"};
-    if (::fsync(fd))
+    if (fsync(fd))
         throw SystemException{"could not synchronize file"};
 }
 
