@@ -1,7 +1,7 @@
 vcpkg_from_github(OUT_SOURCE_PATH SOURCE_PATH
     REPO "yhirose/cpp-httplib"
-    REF "v0.13.1"
-    SHA512 "4a70ebafd0920116a78ea18982606f0bec396e5cdcea9ba583c1da4fd77fa45c5bf30a6ac14eeee9424f3e445a882a560345d731a7113ab4e7dff88f4ef0a436"
+    REF "v${VERSION}"
+    SHA512 "b4f315e174f8efb7884b64b45c500c8259c28379a6079c26747f754db7e1f16a118b1e6f83925b6740a1b5b3516158c1202737dc6385bcefe9c69f4cca57d07e"
 )
 
 vcpkg_cmake_configure(SOURCE_PATH "${SOURCE_PATH}"
@@ -11,13 +11,9 @@ vcpkg_cmake_configure(SOURCE_PATH "${SOURCE_PATH}"
         -DHTTPLIB_USE_ZLIB_IF_AVAILABLE=OFF
         -DHTTPLIB_USE_BROTLI_IF_AVAILABLE=OFF
         -DCMAKE_CXX_FLAGS="-DCPPHTTPLIB_NO_DEFAULT_USER_AGENT"
-
-        # workaround meson evaluating empty BOOL cmake generator expression to true
-        -DHTTPLIB_IS_USING_ZLIB=OFF
-        -DHTTPLIB_IS_USING_BROTLI=OFF
 )
 vcpkg_cmake_install()
 
 vcpkg_cmake_config_fixup(PACKAGE_NAME "httplib" CONFIG_PATH "lib/cmake/httplib")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include" "${CURRENT_PACKAGES_DIR}/debug/share")
-file(INSTALL "${SOURCE_PATH}/LICENSE" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME "copyright")
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
