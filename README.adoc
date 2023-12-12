@@ -2,6 +2,8 @@
 
 komankondi is a game with one simple premise: you have to guess a word given its definition.
 
+The code in this repository is licensed under the link:LICENSE[Apache License 2.0].
+
 
 == Compiling
 
