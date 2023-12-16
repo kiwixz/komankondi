@@ -73,7 +73,7 @@ std::optional<bool> Cli::parse(int argc, char** argv) {
         return true;
     }
     catch (const CLI::ParseError& ex) {
-        log::error("bad options: {}", ex.what());
+        log::error("Bad options: {}", ex.what());
         return false;
     };
 }

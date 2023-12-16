@@ -14,9 +14,9 @@ T parse(std::string_view str, int base = 10) {
     T r;
     std::from_chars_result res = std::from_chars(str.data(), str.data() + str.size(), r, base);
     if (res.ec != std::errc{})
-        throw SystemException{res.ec, "could not parse integer: '{}'", str};
+        throw SystemException{res.ec, "Could not parse integer: '{}'", str};
     if (res.ptr != str.data() + str.size())
-        throw Exception{"could not parse integer: trailing '{}' from '{}'", std::string_view{res.ptr, str.size() - (res.ptr - str.data())}, str};
+        throw Exception{"Could not parse integer: trailing '{}' from '{}'", std::string_view{res.ptr, str.size() - (res.ptr - str.data())}, str};
     return r;
 }
 

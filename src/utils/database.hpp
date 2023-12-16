@@ -41,14 +41,14 @@ struct Database {
             bind(1, args...);
             if constexpr (std::is_same_v<Result, void>) {
                 if (step())
-                    throw Exception{"operation returned a row, expected none"};
+                    throw Exception{"Operation returned a row, expected none"};
             }
             else {
                 if (!step())
-                    throw Exception{"operation did not return a row, expected one"};
+                    throw Exception{"Operation did not return a row, expected one"};
                 Result r = fetch<Result>();
                 if (step())
-                    throw Exception{"operation returned more than one row, expected only one"};
+                    throw Exception{"Operation returned more than one row, expected only one"};
                 return r;
             }
         }
@@ -90,7 +90,7 @@ struct Database {
                 }()
                 != SQLITE_OK)
             {
-                throw Exception{"could not bind argument to database operation: {}", sqlite3_errmsg(sqlite3_db_handle(handle_.get()))};
+                throw Exception{"Could not bind argument to database operation: {}", sqlite3_errmsg(sqlite3_db_handle(handle_.get()))};
             }
         }
         template <typename T, typename... Args>
@@ -111,7 +111,7 @@ struct Database {
                 const char* ptr = reinterpret_cast<const char*>(sqlite3_column_text(handle_.get(), index));
                 int size = sqlite3_column_bytes(handle_.get(), index);
                 if (!ptr && size > 0)
-                    throw Exception{"could not fetch string from database operation: {}", sqlite3_errmsg(sqlite3_db_handle(handle_.get()))};
+                    throw Exception{"Could not fetch string from database operation: {}", sqlite3_errmsg(sqlite3_db_handle(handle_.get()))};
                 value = {ptr, static_cast<size_t>(size)};
             }
             else {

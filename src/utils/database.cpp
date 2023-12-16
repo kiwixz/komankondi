@@ -23,7 +23,7 @@ bool Database::OperationAny::step() {
     if (r == SQLITE_DONE)
         return false;
     if (r != SQLITE_ROW)
-        throw Exception{"could not execute database operation: {}", sqlite3_errmsg(sqlite3_db_handle(handle_.get()))};
+        throw Exception{"Could not execute database operation: {}", sqlite3_errmsg(sqlite3_db_handle(handle_.get()))};
     return true;
 }
 
@@ -35,7 +35,7 @@ Database::Database(ZStringView path, bool read_only) {
                               nullptr);
     handle_.reset(ptr);
     if (err)
-        throw Exception{"could not open database: {}", sqlite3_errmsg(handle_.get())};
+        throw Exception{"Could not open database: {}", sqlite3_errmsg(handle_.get())};
 }
 
 Database::OperationAny Database::prepare_any(std::string_view query, bool persistent) {
@@ -46,9 +46,9 @@ Database::OperationAny Database::prepare_any(std::string_view query, bool persis
                                  persistent ? SQLITE_PREPARE_PERSISTENT : 0, &ptr, &end);
     r.reset(ptr);
     if (err)
-        throw Exception{"could not prepare database operation: {}", sqlite3_errmsg(handle_.get())};
+        throw Exception{"Could not prepare database operation: {}", sqlite3_errmsg(handle_.get())};
     if (end != query.data() + query.size())
-        throw Exception{"could not prepare database operation with multiple statements: '{}'", query};
+        throw Exception{"Could not prepare database operation with multiple statements: '{}'", query};
     return r;
 }
 

@@ -14,7 +14,7 @@ namespace komankondi::dictgen {
 BzipDecompressor::~BzipDecompressor() {
     if (running_) {
         if (int err = BZ2_bzDecompressEnd(&stream_); err)
-            log::error("could not cleanup bzip decompressor stream, error {}", err);
+            log::error("Could not cleanup BZip decompressor stream, error {}", err);
     }
 }
 
@@ -26,7 +26,7 @@ std::vector<std::byte> BzipDecompressor::operator()(std::span<const std::byte> d
             return {};
 
         if (int err = BZ2_bzDecompressInit(&stream_, 0, 0); err)
-            throw Exception{"could not open bzip decompressor stream, error {}", err};
+            throw Exception{"Could not open BZip decompressor stream, error {}", err};
         running_ = true;
     }
 
@@ -42,11 +42,11 @@ std::vector<std::byte> BzipDecompressor::operator()(std::span<const std::byte> d
     buf_.consume(buf_.size() - stream_.avail_in);
     if (ret == BZ_STREAM_END) {
         if (int err = BZ2_bzDecompressEnd(&stream_); err)
-            throw Exception{"could not close bzip decompressor stream, error {}", err};
+            throw Exception{"Could not close BZip decompressor stream, error {}", err};
         running_ = false;
     }
     else if (ret) {
-        throw Exception{"could not decompress bzip data, error {}", ret};
+        throw Exception{"Could not decompress BZip data, error {}", ret};
     }
 
     r.resize(r.size() - stream_.avail_out);

@@ -73,7 +73,7 @@ struct fmt::formatter<komankondi::log::Hexdump> {
 
     constexpr const char* parse(const format_parse_context& ctx) {
         if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-            throw fmt::format_error{"invalid format"};
+            throw fmt::format_error{"Invalid format"};
         return ctx.begin();
     }
 };

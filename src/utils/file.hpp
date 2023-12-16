@@ -44,14 +44,14 @@ struct File {
         r.resize(size);
         r.resize(std::fread(r.data(), sizeof(T), r.size(), stream_.get()));
         if (std::ferror(stream_.get()))
-            throw SystemException{"could not read from file"};
+            throw SystemException{"Could not read from file"};
         return r;
     }
 
     template <typename T>
     void write(std::span<const T> data) {
         if (std::fwrite(data.data(), sizeof(T), data.size(), stream_.get()) < data.size())
-            throw SystemException{"could not write to file"};
+            throw SystemException{"Could not write to file"};
     }
 
 private:

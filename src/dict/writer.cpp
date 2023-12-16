@@ -23,7 +23,7 @@ Writer::~Writer() {
         db_.exec("COMMIT");
     }
     catch (const std::exception& ex) {
-        log::error("could not commit dictionary: {}", ex.what());
+        log::error("Could not commit dictionary: {}", ex.what());
         assert(false);
     }
 }

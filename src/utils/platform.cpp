@@ -37,9 +37,9 @@ FILE* fopen(const std::filesystem::path& path, ZStringView mode) {
 void fsync(FILE* stream) {
     int fd = fileno(stream);
     if (fd == -1)
-        throw SystemException{"could not get file descriptor of stream"};
+        throw SystemException{"Could not get file descriptor of stream"};
     if (fsync(fd))
-        throw SystemException{"could not synchronize file"};
+        throw SystemException{"Could not synchronize file"};
 }
 
 bool isatty(FILE* stream) {

@@ -16,12 +16,12 @@ int from_hex(char digit) {
         return digit - 'a' + 10;
     if (digit >= 'A' && digit <= 'F')
         return digit - 'A' + 10;
-    throw Exception{"could not parse hex digit '{}' ({:d})", digit, digit};
+    throw Exception{"Could not parse hex digit '{}' ({:d})", digit, digit};
 }
 
 std::vector<std::byte> from_hex(std::string_view str) {
     if (str.size() % 2 != 0)
-        throw Exception{"could not parse hex string '{}': extra nibble", str};
+        throw Exception{"Could not parse hex string '{}': extra nibble", str};
     std::vector<std::byte> r;
     r.resize(str.size() / 2);
     for (size_t i = 0; i < r.size(); ++i) {
@@ -33,7 +33,7 @@ std::vector<std::byte> from_hex(std::string_view str) {
 
 char to_hex(int nibble) {
     if (nibble < 0 || nibble > 15)
-        throw Exception{"could not output hex digit for nibble {}", nibble};
+        throw Exception{"Could not output hex digit for nibble {}", nibble};
     return nibble > 9 ? 'a' + nibble - 10 : '0' + nibble;
 }
 

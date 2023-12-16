@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
                 assert(false);
                 return log::Level::debug;
             }();
-            log::log(level, "qt: {}", message.toStdString());
+            log::log(level, "Qt: {}", message.toStdString());
         });
 
         const char* hot_reload = std::getenv("KOMANKONDI_HOT_RELOAD");
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 
         QTimer timer;
         if (hot_reload) {
-            log::info("enabling hot reload");
+            log::info("Enabling hot reload");
             timer.callOnTimeout([&,
                                  hot_reload = std::filesystem::path{hot_reload},
                                  last_reload = std::chrono::file_clock::now()]() mutable noexcept {
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
                         return;
                     }
 
-                    log::info("reloading qml");
+                    log::info("Reloading QML");
                     window.setSource({});
                     window.engine()->clearComponentCache();
                     window.setSource(main_qml);

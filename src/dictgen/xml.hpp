@@ -23,7 +23,7 @@ namespace komankondi::dictgen::xml {
 struct ParsingException : Exception {
     template <typename... Args>
     ParsingException(const tao::pegtl::position& position, fmt::format_string<Args...> format, Args&&... args) :
-            Exception{"could not parse xml at {}:{}, {}", position.line, position.column,
+            Exception{"Could not parse xml at {}:{}, {}", position.line, position.column,
                       fmt::format(format, std::forward<Args>(args)...)} {
     }
 };
@@ -126,9 +126,9 @@ struct Iterate<EndTag> {
     template <typename Input, typename Predicate>
     static void apply(const Input& in, IterateState& s, Predicate&& pred) {
         if (s.stack.empty())
-            throw ParsingException{in.position(), "unexpected end tag"};
+            throw ParsingException{in.position(), "Unexpected end tag"};
         if (s.last_tag_name != s.stack.back().name)
-            throw ParsingException{in.position(), "end tag does not match current element (expected '{}', got '{}')", s.stack.back().name, s.last_tag_name};
+            throw ParsingException{in.position(), "End tag does not match current element (expected '{}', got '{}')", s.stack.back().name, s.last_tag_name};
         pred(s.stack | ranges::views::transform([](const auto& el) -> std::string_view { return el.name; })
                      | ranges::views::join('/')
                      | ranges::to<std::string>,
@@ -184,7 +184,7 @@ void iterate(std::string_view input, Predicate&& pred) {
     Iterate parser;
     parser(input, std::forward<Predicate>(pred));
     if (!parser.finished())
-        throw Exception{"could not fully parse xml input"};
+        throw Exception{"Could not fully parse XML input"};
 }
 
 
@@ -236,7 +236,7 @@ void select(std::string_view input, std::string&& path, std::vector<std::string>
     Select parser{std::move(path), std::move(subpaths)};
     parser(input, std::forward<Predicate>(pred));
     if (!parser.finished())
-        throw Exception{"could not fully parse xml input"};
+        throw Exception{"Could not fully parse XML input"};
 }
 
 }  // namespace komankondi::dictgen::xml

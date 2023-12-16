@@ -47,13 +47,13 @@ std::string compute_mode(File::Mode mode) {
 File::File(ZStringView path, Mode mode) {
     stream_.reset(std::fopen(path.data(), compute_mode(mode).c_str()));
     if (!stream_)
-        throw SystemException{"could not open file '{}'", path};
+        throw SystemException{"Could not open file '{}'", path};
 }
 
 File::File(const std::filesystem::path& path, Mode mode) {
     stream_.reset(fopen(path, compute_mode(mode)));
     if (!stream_)
-        throw SystemException{"could not open file '{}'", path.string()};
+        throw SystemException{"Could not open file '{}'", path.string()};
 }
 
 bool File::eof() const {
@@ -62,7 +62,7 @@ bool File::eof() const {
 
 void File::sync() {
     if (std::fflush(stream_.get()))
-        throw SystemException{"could not flush file"};
+        throw SystemException{"Could not flush file"};
     fsync(stream_.get());
 }
 
@@ -75,7 +75,7 @@ File::Mode operator|(File::Mode a, File::Mode b) {
 
 void std::default_delete<FILE>::operator()(FILE* ptr) const {
     if (int err = std::fclose(ptr); err) {
-        komankondi::log::error("could not close file: {}", std::system_error{errno, std::system_category()}.what());
+        komankondi::log::error("Could not close file: {}", std::system_error{errno, std::system_category()}.what());
         assert(false);
     }
 }
