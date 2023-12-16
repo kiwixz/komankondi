@@ -25,8 +25,7 @@ void download(std::string&& host, std::string&& url, ConsumeQueue<std::vector<st
                 return true;
             },
             [&](const char* ptr, size_t size) {
-                queue.push(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
-                return true;
+                return queue.push(std::as_bytes(std::span{ptr, size}) | ranges::to<std::vector>);
             });
 
     if (!res)
@@ -38,6 +37,10 @@ void download(std::string&& host, std::string&& url, ConsumeQueue<std::vector<st
 
 Downloader::Downloader(std::string host, std::string url) :
         future_{std::async(std::launch::async, download, std::move(host), std::move(url), std::ref(queue_))} {
+}
+
+Downloader::~Downloader() {
+    queue_.close();
 }
 
 std::optional<std::vector<std::byte>> Downloader::read() {

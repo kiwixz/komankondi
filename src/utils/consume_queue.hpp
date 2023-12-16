@@ -2,16 +2,15 @@
 
 #include <cassert>
 #include <condition_variable>
-#include <mutex>
 #include <optional>
 #include <queue>
-#include <thread>
 
 #include "utils/config.hpp"
+#include "utils/guarded.hpp"
 
 namespace komankondi {
 
-/// Thread-safe
+/// Thread-safe multi-producers multi-consumers queue.
 template <typename Element>
 struct ConsumeQueue {
     ConsumeQueue() = default;
@@ -20,32 +19,33 @@ struct ConsumeQueue {
         assert(max_size_ > 0);
     }
 
-    void push(Element&& element) {
-        {
-            std::unique_lock lock{mutex_};
-            condvar_push_.wait(lock, [&] { return std::ssize(queue_) < max_size_; });
-            queue_.push(std::move(element));
-        }
-        condvar_pop_.notify_one();
+    void close() {
+        shared_.lock()->closed = true;
+        condvar_push_.notify_all();
+        condvar_pop_.notify_all();
     }
 
-    void close() {
+    bool push(Element&& element) {
         {
-            std::lock_guard lock{mutex_};
-            closed_ = true;
+            GuardedHandle<Shared> s = shared_.lock();
+            s.wait(condvar_push_, [&] { return s->closed || std::ssize(s->queue) < max_size_; });
+            if (s->closed)
+                return false;
+            s->queue.push(std::move(element));
         }
-        condvar_pop_.notify_all();
+        condvar_pop_.notify_one();
+        return true;
     }
 
     std::optional<Element> pop() {
         std::optional<Element> r;
         {
-            std::unique_lock lock{mutex_};
-            condvar_pop_.wait(lock, [&] { return closed_ || !queue_.empty(); });
-            if (closed_ && queue_.empty())
+            GuardedHandle<Shared> s = shared_.lock();
+            s.wait(condvar_pop_, [&] { return s->closed || !s->queue.empty(); });
+            if (s->closed && s->queue.empty())
                 return {};
-            r = std::move(queue_.front());
-            queue_.pop();
+            r = std::move(s->queue.front());
+            s->queue.pop();
         }
         condvar_push_.notify_one();
         return r;
@@ -54,11 +54,14 @@ struct ConsumeQueue {
 private:
     int max_size_ = default_parallel_queue_size();
 
-    bool closed_ = false;
-    std::mutex mutex_;
+    struct Shared {
+        bool closed = false;
+        std::queue<Element> queue;
+    };
+    Guarded<Shared> shared_;
+
     std::condition_variable condvar_push_;
     std::condition_variable condvar_pop_;
-    std::queue<Element> queue_;
 };
 
 }  // namespace komankondi

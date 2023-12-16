@@ -11,6 +11,11 @@ namespace komankondi::dictgen {
 
 struct Downloader {
     Downloader(std::string host, std::string url);
+    ~Downloader();
+    Downloader(const Downloader&) = delete;
+    Downloader& operator=(const Downloader&) = delete;
+    Downloader(Downloader&&) = delete;
+    Downloader& operator=(Downloader&&) = delete;
 
     std::optional<std::vector<std::byte>> read();
 
