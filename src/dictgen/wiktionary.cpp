@@ -21,6 +21,7 @@
 #include "utils/exception.hpp"
 #include "utils/log.hpp"
 #include "utils/parse.hpp"
+#include "utils/signal.hpp"
 
 namespace komankondi::dictgen {
 namespace {
@@ -130,7 +131,9 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                            tbb::make_filter<void, std::vector<std::byte>>(
                                    tbb::filter_mode::serial_in_order,
                                    [&total_bytes, &fetch](tbb::flow_control& fc) {
-                                       std::optional<std::vector<std::byte>> data = fetch();
+                                       std::optional<std::vector<std::byte>> data;
+                                       if (!terminating())
+                                           data = fetch();
                                        if (!data) {
                                            fc.stop();
                                            return std::vector<std::byte>{};
@@ -193,11 +196,16 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                                    }
                                                }
                                            }));
+    if (terminating())
+        return;
 
     if (!unbzip.finished())
         throw Exception{"Wiktionary data ends with an unfinished bzip stream"};
     if (!dump_parser.finished())
         throw Exception{"Wiktionary data ends with an unfinished xml"};
+
+    dict.save();
+    log::info("Successfully saved new dictionary");
 }
 
 }  // namespace komankondi::dictgen

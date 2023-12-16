@@ -30,6 +30,18 @@ Cacher::Cacher(std::filesystem::path path, std::chrono::file_clock::time_point d
     }
 }
 
+Cacher::~Cacher() {
+    if (!tmp_file_)
+        return;
+    tmp_file_.reset();
+    try {
+        std::filesystem::remove(tmp_path_);
+    }
+    catch (const std::exception& ex) {
+        log::warn("Could not clean incomplete cache file: {}", ex.what());
+    }
+}
+
 void Cacher::save() {
     tmp_file_->sync();
     tmp_file_.reset();

@@ -11,12 +11,15 @@
 #include "utils/cli.hpp"
 #include "utils/exception.hpp"
 #include "utils/log.hpp"
+#include "utils/signal.hpp"
 
 int main(int argc, char** argv) {
     using namespace komankondi;
     using namespace dictgen;
 
     try {
+        catch_termination_signal();
+
         Options opt;
         Cli cli;
         cli.add_flag("--cache,!--no-cache", opt.cache, "Cache downloaded data");

@@ -11,6 +11,11 @@ namespace komankondi::dictgen {
 
 struct Cacher {
     Cacher(std::filesystem::path path, std::chrono::file_clock::time_point date);
+    ~Cacher();
+    Cacher(const Cacher&) = delete;
+    Cacher(Cacher&&) = delete;
+    Cacher& operator=(const Cacher&) = delete;
+    Cacher& operator=(Cacher&&) = delete;
 
     void save();
 

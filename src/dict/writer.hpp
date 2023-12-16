@@ -9,13 +9,9 @@ namespace komankondi::dict {
 
 struct Writer {
     Writer(ZStringView path);
-    ~Writer();
-    Writer(const Writer&) = delete;
-    Writer& operator=(const Writer&) = delete;
-    Writer(Writer&&) = default;
-    Writer& operator=(Writer&&) = default;
 
     void add_word(std::string_view word, std::string_view description);
+    void save();
 
 private:
     Database db_;

@@ -15,6 +15,7 @@ add_library(utils
     "log.cpp"
     "path.cpp"
     "platform.cpp"
+    "signal.cpp"
     "zstring_view.cpp"
 )
 add_library(komankondi::utils ALIAS utils)
