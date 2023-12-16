@@ -16,17 +16,24 @@ namespace komankondi::dictgen {
 
 Cacher::Cacher(std::filesystem::path path, std::chrono::file_clock::time_point date) :
         path_{std::move(path)}, date_{date} {
-    std::string tmp_name = fmt::format("komankondi_{}", std::chrono::steady_clock::now().time_since_epoch().count());
-    tmp_path_ = std::filesystem::temp_directory_path() / tmp_name;
+    tmp_path_ = path_;
+    tmp_path_ += ".new";
     log::debug("Saving temporary cache to {}", tmp_path_);
-    tmp_file_ = {tmp_path_, File::Mode::write | File::Mode::binary};
+
+    if (std::filesystem::exists(tmp_path_)) {
+        log::warn("Found incomplete cache file, assuming it to not be used anymore");
+        tmp_file_ = {tmp_path_, File::Mode::truncate | File::Mode::binary};
+    }
+    else {
+        std::filesystem::create_directories(path_.parent_path());
+        tmp_file_ = {tmp_path_, File::Mode::write | File::Mode::binary};
+    }
 }
 
 void Cacher::save() {
     tmp_file_->sync();
     tmp_file_.reset();
     std::filesystem::last_write_time(tmp_path_, date_);
-    std::filesystem::create_directories(path_.parent_path());
     std::filesystem::rename(tmp_path_, path_);
     log::info("Successfully saved cache");
 }
