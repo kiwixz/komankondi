@@ -22,26 +22,22 @@ bool operator&(File::Mode a, File::Mode b) {
 
 std::string compute_mode(File::Mode mode) {
     std::string r;
-    if (mode & (File::Mode::write | File::Mode::truncate) && !(mode & File::Mode::append)) {
-        r = 'w';
+    if (mode & (File::Mode::write | File::Mode::truncate | File::Mode::append)) {
+        assert(!(mode & File::Mode::truncate && mode & File::Mode::append));
+        r = mode & File::Mode::append ? 'a' : 'w';
         if (mode & File::Mode::read)
             r += '+';
-        if (!(mode & File::Mode::truncate))
+        if (mode & File::Mode::binary)
+            r += 'b';
+        if (!(mode & (File::Mode::truncate | File::Mode::append)))
             r += 'x';
     }
-    else if (mode & File::Mode::append && !(mode & File::Mode::truncate)) {
-        r = 'a';
-        if (mode & File::Mode::read)
-            r += '+';
-    }
-    else if (mode & File::Mode::read && !(mode & (File::Mode::truncate | File::Mode::append))) {
-        r = 'r';
-    }
     else {
-        throw Exception{"bad file mode: {:#b}", static_cast<int>(mode)};
+        assert(mode & File::Mode::read);
+        r = 'r';
+        if (mode & File::Mode::binary)
+            r += 'b';
     }
-    if (mode & File::Mode::binary)
-        r += 'b';
     return r;
 }
 

@@ -23,9 +23,10 @@ namespace komankondi {
 struct File {
     enum class Mode {
         read = 1 << 0,
+
         write = 1 << 1,
-        truncate = 1 << 2,  // implies write
-        append = 1 << 3,  // implies write
+        truncate = 1 << 2,
+        append = 1 << 3,
 
         binary = 1 << 4,
     };
