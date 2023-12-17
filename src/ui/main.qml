@@ -1,6 +1,7 @@
-import QtQml 2.15
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQml
+import QtQuick
+import QtQuick.Layouts
+import komankondi
 
 Rectangle {
     color: "black"
@@ -16,9 +17,9 @@ Rectangle {
             font.pointSize: 48
 
             onTextChanged: {
-                if (c.submit(text)) {
-                    text = ""
-                    description.text = c.description()
+                if (Context.submit(text)) {
+                    text = "";
+                    description.text = Context.description();
                 }
             }
         }
@@ -29,7 +30,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            text: c.description()
+            text: Context.description()
             wrapMode: Text.Wrap
             color: "white"
             font.pointSize: 16

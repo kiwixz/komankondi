@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QQmlEngine>
 #include <QString>
 
 #include "game/game.hpp"
@@ -16,6 +17,8 @@ private:
     game::Game game_;
 
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 };
 
 }  // namespace komankondi::ui

@@ -6,6 +6,7 @@ import difflib
 import functools
 import math
 import multiprocessing
+import shutil
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -79,6 +80,13 @@ def print_error(msg):
     print(f"\033[31;1m{msg}\033[0m")
 
 
+def first_executable(names):
+    for name in names[:-1]:
+        if shutil.which(name):
+            return name
+    return names[-1]
+
+
 def main():
     tasks = {
         "clang-format": Formatter(
@@ -115,7 +123,14 @@ def main():
             ["black", "--quiet", "-"],
             ["black", "--quiet", "{}"],
         ),
-        "qmllint": Linter([".qml"], ["qmllint", "{}"]),
+        "qmllint": Linter(
+            [".qml"],
+            [
+                first_executable(["/usr/lib/qt6/bin/qmllint", "/usr/lib64/qt6/bin/qmllint", "qmllint"]),
+                "-Ibuild/src/ui",
+                "{}",
+            ],
+        ),
     }
 
     parser = argparse.ArgumentParser()

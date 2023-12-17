@@ -2,25 +2,18 @@
 #include <exception>
 #include <filesystem>
 
-#include <QDir>
 #include <QGuiApplication>
-#include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickView>
-#include <QtGlobal>
 #include <QTimer>
 #include <range/v3/algorithm/none_of.hpp>
 
-#include "ui/context.hpp"
 #include "utils/log.hpp"
 
 int main(int argc, char** argv) {
     using namespace komankondi;
-    using namespace ui;
 
     try {
-        Q_INIT_RESOURCE(main);
-
         qInstallMessageHandler([](QtMsgType level_qt, const QMessageLogContext& /*from*/, const QString& message) {
             log::Level level = [&] {
                 switch (level_qt) {
@@ -39,14 +32,12 @@ int main(int argc, char** argv) {
         const char* hot_reload = std::getenv("KOMANKONDI_HOT_RELOAD");
 
         QGuiApplication app{argc, argv};
-        Context c;
         QQuickView window;
 
-        window.rootContext()->setContextProperty("c", &c);
         window.setResizeMode(QQuickView::SizeRootObjectToView);
         window.resize(800, 450);
 
-        QUrl main_qml = QString::fromStdString(fmt::format("{}/main.qml", hot_reload ? hot_reload : "qrc:"));
+        QUrl main_qml = QString::fromStdString(fmt::format("{}/main.qml", hot_reload ? hot_reload : "qrc:qt/qml/komankondi"));
         window.setSource(main_qml);
         if (window.status() != QQuickView::Ready)
             return 1;

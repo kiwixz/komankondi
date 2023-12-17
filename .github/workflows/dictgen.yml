@@ -22,7 +22,7 @@ jobs:
     - name: install
       run: |
         apt-get update
-        apt-get -y install cmake g++ git ninja-build python3 qtdeclarative5-dev  \
+        apt-get -y install cmake g++ git ninja-build python3 qt6-declarative-dev  \
           `#vcpkg:` curl make pkg-config zip  \
           zstd
     - name: checkout

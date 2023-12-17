@@ -34,7 +34,7 @@ def main():
     shutil.move(bin_dir, dist_dir)
 
     if sys.platform == "win32":
-        run(["windeployqt", "--qmldir=src/ui/resources", dist_dir / "komankondi.exe"])
+        run(["windeployqt", "--qmldir=src/ui", dist_dir / "komankondi.exe"])
 
     shutil.make_archive(
         str(args.builddir / dist_name),

@@ -19,7 +19,7 @@ jobs:
     - name: install
       run: |
         apt-get update
-        apt-get -y install cmake g++ git ninja-build python3 qtdeclarative5-dev  \
+        apt-get -y install cmake g++ git ninja-build python3 qt6-declarative-dev  \
           `#vcpkg:` curl make pkg-config zip
     - name: checkout
       uses: actions/checkout@v4
@@ -59,7 +59,8 @@ jobs:
     - name: install
       run: |
         apt-get update
-        apt-get -y install cmake g++ git ninja-build python3 qtdeclarative5-dev  \
+        apt-get -y install cmake g++ git ninja-build python3 qt6-declarative-dev  \
+          qml6-module-qtqml qml6-module-qtqml-workerscript qml6-module-qtquick qml6-module-qtquick-layouts  \
           `#vcpkg:` curl make pkg-config zip  \
           `#lint:` black clang-format clang-tidy pylint
     - name: checkout
@@ -71,10 +72,12 @@ jobs:
         CXXFLAGS: -Werror
         VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
       run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{matrix.buildtype}}
-    - name: lint
+    - name: prepare
       run: |
         chown $(id -u) .
-        ./lint
+        ninja -C build all_qmltyperegistrations
+    - name: lint
+      run: ./lint
 
   build_windows:
     strategy:
@@ -92,9 +95,9 @@ jobs:
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.7 ninja==1.11.1
-        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
-        echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
+        pip install aqtinstall==3.1.11 ninja==1.11.1.1
+        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 6.6.1 win64_msvc2019_64 --archives qtbase qtdeclarative
+        echo "$env:RUNNER_TEMP\qt\6.6.1\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
       uses: actions/checkout@v4
       with:
@@ -133,9 +136,9 @@ jobs:
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.7 ninja==1.11.1
-        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase qtdeclarative qttools
-        echo "$env:RUNNER_TEMP\qt\5.15.2\msvc2019_64\bin" >>"$env:GITHUB_PATH"
+        pip install aqtinstall==3.1.11 ninja==1.11.1.1
+        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 6.6.1 win64_msvc2019_64 --archives qtbase qtdeclarative
+        echo "$env:RUNNER_TEMP\qt\6.6.1\msvc2019_64\bin" >>"$env:GITHUB_PATH"
     - name: checkout
       uses: actions/checkout@v4
       with:
