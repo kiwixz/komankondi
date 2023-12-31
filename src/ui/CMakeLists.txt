@@ -2,7 +2,7 @@ find_package(fmt REQUIRED)
 find_package(Qt6 REQUIRED Quick)
 find_package(range-v3 REQUIRED)
 
-add_library(ui_
+add_library(ui_ STATIC
     "context.cpp"
     "context.hpp"
 )
@@ -17,9 +17,9 @@ target_link_libraries(ui_ PUBLIC
 
 qt_add_qml_module(ui_
     URI komankondi
+    VERSION 1.0
     RESOURCE_PREFIX "qt/qml"
     OUTPUT_DIRECTORY "komankondi"
-    VERSION 1.0
     QML_FILES
         "main.qml"
 )
