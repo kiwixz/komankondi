@@ -20,7 +20,6 @@ if (VCPKG)
     endif ()
     set(VCPKG_BOOTSTRAP_OPTIONS "-disableMetrics" CACHE STRING "")
     set(VCPKG_INSTALL_OPTIONS "--no-print-usage" CACHE STRING "")
-    set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_ports" CACHE STRING "")
     set(CMAKE_TOOLCHAIN_FILE "vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE FILEPATH "")
 endif ()
 
