@@ -1,5 +1,6 @@
 #include "wiktionary.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <span>
@@ -7,87 +8,63 @@
 #include <string_view>
 #include <vector>
 
+#include <boost/json/parse.hpp>
+#include <boost/json/value.hpp>
+#include <boost/regex.hpp>
+#include <fmt/core.h>
 #include <httplib.h>
-#include <range/v3/algorithm/find.hpp>
+#include <range/v3/algorithm/max.hpp>
+#include <range/v3/view/subrange.hpp>
+#include <range/v3/view/transform.hpp>
 #include <tbb/parallel_pipeline.h>
 
 #include "dict/writer.hpp"
-#include "dictgen/bzip.hpp"
 #include "dictgen/cache.hpp"
 #include "dictgen/downloader.hpp"
+#include "dictgen/gzip.hpp"
 #include "dictgen/options.hpp"
-#include "dictgen/xml.hpp"
+#include "dictgen/tarcat.hpp"
 #include "utils/config.hpp"
 #include "utils/exception.hpp"
+#include "utils/find_last.hpp"
 #include "utils/log.hpp"
-#include "utils/parse.hpp"
 #include "utils/signal.hpp"
 
 namespace komankondi::dictgen {
-namespace {
-
-std::chrono::file_clock::time_point parse_dump_date(std::string_view str) {
-    // only supports the "preferred" http format
-    if (str.size() != 29
-        || str.substr(3, 2) != ", "
-        || str[7] != ' '
-        || str[11] != ' '
-        || str[16] != ' '
-        || str[19] != ':' || str[22] != ':'
-        || str.substr(25) != " GMT")
-    {
-        throw Exception{"Could not parse http date from unsupported format: '{}'", str};
-    }
-
-    std::array months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-    auto months_it = ranges::find(months, str.substr(8, 3));
-    if (months_it == months.end())
-        throw Exception{"Unknown month: '{}'", str.substr(8, 3)};
-
-    std::chrono::system_clock::time_point r = std::chrono::sys_days{std::chrono::year_month_day{
-                                                      std::chrono::year{parse<int>(str.substr(12, 4))},
-                                                      std::chrono::month{static_cast<unsigned>(months_it - months.begin()) + 1},
-                                                      std::chrono::day{parse<unsigned>(str.substr(5, 2))}}}
-                                              + std::chrono::hours{parse<int>(str.substr(17, 2))}
-                                              + std::chrono::minutes{parse<int>(str.substr(20, 2))}
-                                              + std::chrono::seconds{parse<int>(str.substr(23, 2))};
-
-#if defined(_GLIBCXX_RELEASE) && _GLIBCXX_RELEASE < 13
-    return std::chrono::file_clock::from_sys(r);
-#else
-    return std::chrono::clock_cast<std::chrono::file_clock>(r);
-#endif
-}
-
-}  // namespace
-
 
 void dictgen_wiktionary(std::string_view language, const Options& opt) {
     log::info("Generating {} dictionary from wiktionary", language);
 
-    std::string dump_host = "dumps.wikimedia.org";
-    std::string dump_url = fmt::format("/{0}wiktionary/latest/{0}wiktionary-latest-pages-articles.xml.bz2", language);
+    std::string host = "dumps.wikimedia.org";
+    httplib::SSLClient http{host};
 
-    httplib::Result res = httplib::SSLClient{dump_host}.Head(dump_url);
-    if (!res)
-        throw Exception{"Could not check latest wiktionary dump: {}", httplib::to_string(res.error())};
-    if (res->status != 200)
-        throw Exception{"Could not check latest wiktionary dump: HTTP status {} ({})", res->status, res->reason};
+    httplib::Result index_res = http.Get("/other/enterprise_html/runs/");
+    if (!index_res)
+        throw Exception{"Could not get dumps index: {}", httplib::to_string(index_res.error())};
+    if (index_res->status != 200)
+        throw Exception{"Could not get dumps index: HTTP status {} ({})", index_res->status, index_res->reason};
 
-    std::string dump_date_str = res->get_header_value("last-modified");
-    if (dump_date_str.empty())
-        throw Exception{"Could not get latest wiktionary dump date"};
+    boost::regex re_dump_dates{R"("([0-9]{8})/")"};
 
-    log::info("Using latest dump from {}", dump_date_str);
-    std::chrono::file_clock::time_point dump_date = parse_dump_date(dump_date_str);
+    // clangd 14 cannot handle the deduction guides here
+    ranges::subrange<boost::sregex_token_iterator> dump_dates{boost::sregex_token_iterator{index_res->body.begin(), index_res->body.end(),
+                                                                                           re_dump_dates, 1},
+                                                              {}};
+    if (dump_dates.empty())
+        throw Exception{"Could not find any available dump"};
+
+    std::string dump_date = ranges::max(dump_dates);
+    log::info("Using latest dump from {}", dump_date);
+
+    std::string dump_url = fmt::format("/other/enterprise_html/runs/20240101/{}wiktionary-NS0-{}-ENTERPRISE-HTML.json.tar.gz", language, dump_date);
 
     std::optional<File> cached_file;
     std::optional<Downloader> downloader;
     std::optional<Cacher> cacher;
     std::function<std::optional<std::vector<std::byte>>()> fetch;
     if (opt.cache) {
-        std::filesystem::path cache_path = get_cache_directory() / fmt::format("{}wiktionary.xml.bz2", language);
-        cached_file = try_load_cache(cache_path, dump_date);
+        std::filesystem::path cache_path = get_cache_directory() / fmt::format("{}wiktionary_{}.tgz", language, dump_date);
+        cached_file = try_load_cache(cache_path);
         if (cached_file) {
             fetch = [&cached_file]() -> std::optional<std::vector<std::byte>> {
                 if (cached_file->eof())
@@ -96,8 +73,8 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
             };
         }
         else {
-            downloader.emplace(dump_host, dump_url);
-            cacher.emplace(cache_path, dump_date);
+            downloader.emplace(host, dump_url);
+            cacher.emplace(cache_path);
             fetch = [&downloader, &cacher] {
                 std::optional<std::vector<std::byte>> r = downloader->read();
                 if (r) {
@@ -111,15 +88,16 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
         }
     }
     else {
-        downloader.emplace(dump_host, dump_url);
+        downloader.emplace(host, dump_url);
         fetch = [&downloader] { return downloader->read(); };
     }
 
 
     std::atomic<size_t> total_bytes = 0;
 
-    BzipDecompressor unbzip;
-    xml::Select dump_parser{"mediawiki/page", {"title", "ns", "revision/text"}};
+    GzipDecompressor unzip;
+    TarCat tarcat;
+    std::vector<std::byte> partial_line;
     dict::Writer dict{opt.dictionary};
 
     size_t total_words = 0;
@@ -143,36 +121,46 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                    })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
                                            tbb::filter_mode::serial_in_order,
-                                           [&unbzip](const std::vector<std::byte>& data) {
-                                               std::vector<std::byte> r = unbzip(data);
+                                           [&unzip](std::vector<std::byte>&& data) {
+                                               std::vector<std::byte> r = unzip(data);
                                                while (true) {
-                                                   std::vector<std::byte> more = unbzip();
+                                                   std::vector<std::byte> more = unzip();
                                                    if (more.empty())
                                                        break;
                                                    r.insert(r.end(), more.begin(), more.end());
                                                }
                                                return r;
                                            })
-                                   & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
+                                   & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
                                            tbb::filter_mode::serial_in_order,
-                                           [&dump_parser](const std::vector<std::byte>& data) {
+                                           [&tarcat, &partial_line](std::vector<std::byte>&& data) {
+                                               std::vector<std::byte> r = std::move(partial_line);
+                                               tarcat(data, r);
+                                               auto it = find_last(r, std::byte{'\n'});
+                                               if (it == r.end()) {
+                                                   partial_line = std::move(r);
+                                                   return std::vector<std::byte>{};
+                                               }
+                                               partial_line.assign(it + 1, r.end());
+                                               r.erase(it + 1, r.end());
+                                               return r;
+                                           })
+                                   & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
+                                           tbb::filter_mode::parallel,
+                                           [](std::vector<std::byte>&& data) {
                                                std::vector<std::pair<std::string, std::string>> r;
-                                               dump_parser({reinterpret_cast<const char*>(data.data()), data.size()},
-                                                           [&](xml::Select::Element&& el) {
-                                                               if (el.count("title") != 1
-                                                                   || el.count("ns") != 1
-                                                                   || el.count("revision/text") != 1)
-                                                               {
-                                                                   log::warn("Ignoring dump page with missing data");
-                                                                   return;
-                                                               }
+                                               std::string_view remaining{reinterpret_cast<char*>(data.data()), data.size()};
+                                               while (!remaining.empty()) {
+                                                   int size = remaining.find('\n');
+                                                   std::string_view line = remaining.substr(0, size);
+                                                   remaining = remaining.substr(size + 1);
 
-                                                               if (el.find("ns")->second != "0")  // not a word
-                                                                   return;
+                                                   boost::json::value json = boost::json::parse(line);
+                                                   std::string_view word = json.at("name").as_string();
+                                                   std::string_view html = json.at("article_body").at("html").as_string();
 
-                                                               r.emplace_back(std::move(el.find("title")->second),
-                                                                              std::move(el.find("revision/text")->second));
-                                                           });
+                                                   r.emplace_back(word, html);
+                                               }
                                                return r;
                                            })
                                    & tbb::make_filter<std::vector<std::pair<std::string, std::string>>, void>(
@@ -181,7 +169,14 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                                    const std::vector<std::pair<std::string, std::string>>& words) {
                                                for (const auto& [word, description] : words) {
                                                    ++total_words;
-                                                   dict.add_word(word, description);
+
+                                                   try {
+                                                       dict.add_word(word, description);
+                                                   }
+                                                   catch (const std::exception& ex) {
+                                                       // dumps currently have duplicates: https://phabricator.wikimedia.org/T305407
+                                                       log::debug("Could not add word {}: {}", word, ex.what());
+                                                   }
 
                                                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                                                    if (now > last_stat_time + std::chrono::seconds{2}) {
@@ -199,10 +194,12 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     if (terminating())
         return;
 
-    if (!unbzip.finished())
-        throw Exception{"Wiktionary data ends with an unfinished bzip stream"};
-    if (!dump_parser.finished())
-        throw Exception{"Wiktionary data ends with an unfinished xml"};
+    if (!unzip.finished())
+        throw Exception{"Data ends with an unfinished gzip stream"};
+    if (!tarcat.finished())
+        throw Exception{"Data ends with an unfinished tar file"};
+    if (!partial_line.empty())
+        throw Exception{"Data ends with a partial line"};
 
     dict.save();
     log::info("Successfully saved new dictionary with {} words", total_words);

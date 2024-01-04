@@ -4,15 +4,16 @@
         "overlay-ports": [ "vcpkg_ports" ]
     },
     "dependencies": [
-        { "name": "bzip2", "default-features": false },
         "catch2",
+        "boost-json",
+        "boost-regex",
         "cli11",
         "cpp-httplib",
         "fmt",
         "openssl",
-        "pegtl",
         "range-v3",
         { "name": "sqlite3", "default-features": false },
-        "tbb"
+        "tbb",
+        "zlib"
     ]
 }

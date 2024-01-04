@@ -1,9 +1,7 @@
 #include "dictgen/cache.hpp"
 
-#include <chrono>
 #include <filesystem>
 #include <optional>
-#include <span>
 #include <string>
 
 #include <fmt/core.h>
@@ -14,14 +12,14 @@
 
 namespace komankondi::dictgen {
 
-Cacher::Cacher(std::filesystem::path path, std::chrono::file_clock::time_point date) :
-        path_{std::move(path)}, date_{date} {
+Cacher::Cacher(std::filesystem::path path) :
+        path_{std::move(path)} {
     tmp_path_ = path_;
     tmp_path_ += ".new";
     log::debug("Saving temporary cache to {}", tmp_path_);
 
     if (std::filesystem::exists(tmp_path_)) {
-        log::warn("Found incomplete cache file, assuming it to not be used anymore");
+        log::warn("Found incomplete cache file, assuming it is not used anymore");
         tmp_file_ = {tmp_path_, File::Mode::truncate | File::Mode::binary};
     }
     else {
@@ -45,22 +43,17 @@ Cacher::~Cacher() {
 void Cacher::save() {
     tmp_file_->sync();
     tmp_file_.reset();
-    std::filesystem::last_write_time(tmp_path_, date_);
     std::filesystem::rename(tmp_path_, path_);
     log::info("Successfully saved cache");
 }
 
-std::optional<File> try_load_cache(const std::filesystem::path& path, std::chrono::file_clock::time_point date) {
+std::optional<File> try_load_cache(const std::filesystem::path& path) {
     log::debug("Cache path is {}", path);
 
     try {
         if (std::filesystem::exists(path)) {
             log::info("Found cache");
-
-            if (std::filesystem::last_write_time(path) >= date - std::chrono::seconds{1})
-                return File{path, File::Mode::read | File::Mode::binary};
-
-            log::info("Cache is stale");
+            return File{path, File::Mode::read | File::Mode::binary};
         }
     }
     catch (const std::exception& ex) {
