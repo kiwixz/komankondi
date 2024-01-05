@@ -116,16 +116,16 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     }
 
 
-    std::atomic<int> total_bytes = 0;
+    std::atomic<size_t> total_bytes = 0;
 
     BzipDecompressor unbzip;
     xml::Select dump_parser{"mediawiki/page", {"title", "ns", "revision/text"}};
     dict::Writer dict{opt.dictionary};
 
-    int total_words = 0;
+    size_t total_words = 0;
     std::chrono::steady_clock::time_point last_stat_time = std::chrono::steady_clock::now();
-    int last_stat_bytes = 0;
-    int last_stat_words = 0;
+    size_t last_stat_bytes = 0;
+    size_t last_stat_words = 0;
 
     tbb::parallel_pipeline(default_parallel_queue_size(),
                            tbb::make_filter<void, std::vector<std::byte>>(
@@ -185,7 +185,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
                                                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                                                    if (now > last_stat_time + std::chrono::seconds{2}) {
-                                                       int total_bytes_now = total_bytes.load(std::memory_order::relaxed);
+                                                       size_t total_bytes_now = total_bytes.load(std::memory_order::relaxed);
                                                        double delta = std::chrono::duration<double>(now - last_stat_time).count();
                                                        log::info("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
                                                                  total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
