@@ -205,7 +205,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
         throw Exception{"Wiktionary data ends with an unfinished xml"};
 
     dict.save();
-    log::info("Successfully saved new dictionary");
+    log::info("Successfully saved new dictionary with {} words", total_words);
 }
 
 }  // namespace komankondi::dictgen
