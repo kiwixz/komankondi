@@ -8,6 +8,7 @@ BraceWrapping:
   AfterControlStatement: MultiLine
   BeforeCatch: true
   BeforeElse: true
+BreakAfterAttributes: Leave
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
@@ -30,14 +31,15 @@ IncludeCategories:
     SortPriority: 320
 IndentExternBlock: NoIndent
 IndentPPDirectives: AfterHash
+IndentRequiresClause: false
 IndentWidth: 4
-# InsertNewlineAtEOF: true
+InsertNewlineAtEOF: true
 MaxEmptyLinesToKeep: 2
 PointerAlignment: Left
 PPIndentWidth: 2
 QualifierAlignment: Left
 ReferenceAlignment: Pointer
-# RemoveSemicolon: true
+RemoveSemicolon: true
 ShortNamespaceLines: 0
 SortIncludes: CaseInsensitive
 SpacesBeforeTrailingComments: 2

@@ -11,47 +11,50 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import List
+
+LLVM_VERSION = 16
 
 
 class Linter:
-    def __init__(self, files, check_cmd, fix_cmd=None):
+    def __init__(
+        self,
+        files: List[str],
+        cmd: List[str],
+        check_params: List[str] | None = None,
+        fix_params: List[str] | None = None,
+    ):
         self.files = files
-        self.check_cmd = check_cmd
-        self.fix_cmd = fix_cmd
+        self.cmd = cmd
+        self.check_params = check_params
+        self.fix_params = fix_params
 
-    def check(self, path):
-        r = subprocess.run(
-            [arg.format(path) for arg in self.check_cmd],
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        return None if r.returncode == 0 else r.stdout
+    def check(self, path: Path):
+        return self._run([arg.format(path) for arg in self.cmd + (self.check_params or [])])
 
-    def fix(self, path):
-        if not self.fix_cmd:
-            return self.check(path)
-
-        r = subprocess.run(
-            [arg.format(path) for arg in self.fix_cmd],
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        return None if r.returncode == 0 else r.stdout
+    def fix(self, path: Path):
+        return self._run([arg.format(path) for arg in self.cmd + (self.fix_params or [])])
 
     def match(self, path: Path):
         return str(path) in self.files or path.suffix in self.files
 
+    def _run(self, cmd: List[str]):
+        r = subprocess.run(
+            cmd,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        return None if r.returncode == 0 else r.stdout
+
 
 class Formatter(Linter):
-    def check(self, path):
+    def check(self, path: Path):
         with open(path, encoding="utf8") as f:
             original = f.read()
         r = subprocess.run(
-            [arg.format(path) for arg in self.check_cmd],
+            [arg.format(path) for arg in self.cmd + (self.check_params or [])],
             check=False,
             text=True,
             input=original,
@@ -76,52 +79,48 @@ class Formatter(Linter):
         return "".join(f"{colorize(line)}\n" for line in patch)
 
 
-def print_error(msg):
+def print_error(msg: str):
     print(f"\033[31;1m{msg}\033[0m")
 
 
-def first_executable(names):
+def first_executable(names: List[str]):
     for name in names[:-1]:
         if shutil.which(name):
             return name
     return names[-1]
 
 
+def llvm_executable(name: str):
+    return first_executable([f"{name}-{LLVM_VERSION}", name])
+
+
 def main():
     tasks = {
         "clang-format": Formatter(
             [".cpp", ".hpp"],
-            ["clang-format", "-assume-filename", "{}"],
-            ["clang-format", "-i", "{}"],
+            [llvm_executable("clang-format")],
+            ["-assume-filename", "{}"],
+            ["-i", "{}"],
         ),
         "clang-tidy": Linter(
             [".cpp"],
             [
-                "clang-tidy",
+                llvm_executable("clang-tidy"),
                 "--quiet",
                 "--use-color",
                 "--warnings-as-errors=*",
                 "--extra-arg=-Wno-unknown-warning-option",
                 "-p=build",
-                "{}",
             ],
-            [
-                "clang-tidy",
-                "--quiet",
-                "--use-color",
-                "--warnings-as-errors=*",
-                "--extra-arg=-Wno-unknown-warning-option",
-                "-p=build",
-                "--fix-errors",
-                "--fix-notes",
-                "{}",
-            ],
+            ["{}"],
+            ["--fix-errors", "--fix-notes", "{}"],
         ),
         "pylint": Linter(["dist", "lint", ".py"], ["pylint", "--score=n", "{}"]),
         "black": Formatter(
             ["dist", "lint", ".py"],
-            ["black", "--quiet", "-"],
-            ["black", "--quiet", "{}"],
+            ["black", "--quiet"],
+            ["-"],
+            ["{}"],
         ),
         "qmllint": Linter(
             [".qml"],

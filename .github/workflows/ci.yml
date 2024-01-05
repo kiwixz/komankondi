@@ -62,7 +62,7 @@ jobs:
         apt-get -y install cmake g++ git ninja-build python3 qt6-declarative-dev  \
           qml6-module-qtqml qml6-module-qtqml-workerscript qml6-module-qtquick qml6-module-qtquick-layouts  \
           `#vcpkg:` curl make pkg-config zip  \
-          `#lint:` black clang-format clang-tidy pylint
+          `#lint:` black clang-format-16 clang-tidy-16 pylint
     - name: checkout
       uses: actions/checkout@v4
       with:
@@ -133,6 +133,10 @@ jobs:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+    - name: setup python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"

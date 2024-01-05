@@ -46,10 +46,9 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
 
     boost::regex re_dump_dates{R"("([0-9]{8})/")"};
 
-    // clangd 14 cannot handle the deduction guides here
-    ranges::subrange<boost::sregex_token_iterator> dump_dates{boost::sregex_token_iterator{index_res->body.begin(), index_res->body.end(),
-                                                                                           re_dump_dates, 1},
-                                                              {}};
+    ranges::subrange dump_dates{boost::sregex_token_iterator{index_res->body.begin(), index_res->body.end(),
+                                                             re_dump_dates, 1},
+                                boost::sregex_token_iterator{}};
     if (dump_dates.empty())
         throw Exception{"Could not find any available dump"};
 
