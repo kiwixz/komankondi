@@ -12,12 +12,29 @@ struct Buffer {
         return buffer_.size() == consumed_;
     }
 
+    size_t size() const {
+        return buffer_.size() - consumed_;
+    }
+
     const T* data() const {
+        return const_cast<Buffer&>(*this).data();
+    }
+    T* data() {
         return buffer_.data() + consumed_;
     }
 
-    size_t size() const {
-        return buffer_.size() - consumed_;
+    const T* begin() const {
+        return data();
+    }
+    T* begin() {
+        return data();
+    }
+
+    const T* end() const {
+        return const_cast<Buffer&>(*this).end();
+    }
+    T* end() {
+        return buffer_.data() + buffer_.size();
     }
 
     void push(std::span<const T> data) {
@@ -29,6 +46,11 @@ struct Buffer {
     void consume(int size) {
         assert(size <= std::ssize(*this));
         consumed_ += size;
+    }
+
+    void clear() {
+        consumed_ = 0;
+        buffer_.clear();
     }
 
 private:
