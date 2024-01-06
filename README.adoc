@@ -18,9 +18,9 @@ This will attempt to install most dependencies via vcpkg and build the project w
 
 == Dictionary
 
-Before playing you will need a komankondi dictionary.  This is nothing more than a database of words and their definition.  The easiest way to get one is to run the `komankondi-dictgen` tool.  It takes a source as argument, and currently only supports extracting the data from the https://wiktionary.org[wiktionary].  Prepend the desired language code; so for example to download data from the english (en) wiktionary you would execute the following:
+Before playing you will need a komankondi dictionary.  This is nothing more than a database of words and their definition.  The easiest way to get one is to run the `komankondi-dictgen` tool.  It takes a language as argument and will extract the data from the https://wiktionary.org[wiktionary].  Currently only English and French are supported.
 ----
-komankondi-dictgen enwiktionary
+komankondi-dictgen english
 ----
 
 

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <exception>
 #include <span>
 #include <string>
 #include <string_view>
@@ -22,18 +23,44 @@
 #include "dictgen/cache.hpp"
 #include "dictgen/downloader.hpp"
 #include "dictgen/gzip.hpp"
-#include "dictgen/options.hpp"
 #include "dictgen/tarcat.hpp"
 #include "utils/config.hpp"
 #include "utils/exception.hpp"
 #include "utils/find_last.hpp"
+#include "utils/iequal.hpp"
 #include "utils/log.hpp"
+#include "utils/path.hpp"
 #include "utils/signal.hpp"
+#include "utils/zstring_view.hpp"
 
 namespace komankondi::dictgen {
 
-void dictgen_wiktionary(std::string_view language, const Options& opt) {
-    log::info("Generating {} dictionary from wiktionary", language);
+LanguageSpec find_language_spec(std::string_view query) {
+    if (iequal(query, std::string_view{"english"}.substr(0, query.length()))) {
+        return {"English",
+                "en",
+                boost::regex{R"(<h2 id="English".*?(?=<h2 |\z))"},
+                boost::regex{R"(<h3 id="(?:)"
+                             "Adjective|Adverb|Conjunction|Determiner|Interjection|Noun|Phrase|Postposition|Preposition|Pronoun|Proverb|Verb"
+                             R"().*?>(?:<.*?>)*(.+?)<.*?(?=<h\d+ |\z))"},
+                boost::regex{R"(<li\b.*?>(.*?)(?:\n<([du]l)\b.*?</\g{-1}>)*</li>)"}};
+    }
+
+    if (iequal(query, std::string_view{"french"}.substr(0, query.length()))) {
+        return {"French",
+                "fr",
+                boost::regex{R"(<h2 id="Français".*?(?=<h2 |\z))"},
+                boost::regex{R"(<h3 id="(?:)"
+                             "Adjectif|Adverbe|Conjonction|Interjection|Locution|Nom_commun|Onomatopée|Postposition|Préposition|Pronom|Proverbe|Verbe"
+                             R"().*?>(?:<.*?>)*(.+?)<.*?(?=<h\d+ |\z))"},
+                boost::regex{R"(<li\b.*?>(.*?)(?:\n<ul\b.*?</ul>)?</li>)"}};
+    }
+
+    throw Exception{"Could not find a language that starts with {}", query};
+}
+
+void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bool cache) {
+    log::info("Generating {} dictionary from Wiktionary", language_spec.name);
 
     std::string host = "dumps.wikimedia.org";
     httplib::SSLClient http{host};
@@ -45,7 +72,6 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
         throw Exception{"Could not get dumps index: HTTP status {} ({})", index_res->status, index_res->reason};
 
     boost::regex re_dump_dates{R"("([0-9]{8})/")"};
-
     ranges::subrange dump_dates{boost::sregex_token_iterator{index_res->body.begin(), index_res->body.end(),
                                                              re_dump_dates, 1},
                                 boost::sregex_token_iterator{}};
@@ -55,14 +81,14 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     std::string dump_date = ranges::max(dump_dates);
     log::info("Using latest dump from {}", dump_date);
 
-    std::string dump_url = fmt::format("/other/enterprise_html/runs/20240101/{}wiktionary-NS0-{}-ENTERPRISE-HTML.json.tar.gz", language, dump_date);
+    std::string dump_url = fmt::format("/other/enterprise_html/runs/20240101/{}wiktionary-NS0-{}-ENTERPRISE-HTML.json.tar.gz", language_spec.code, dump_date);
 
     std::optional<File> cached_file;
     std::optional<Downloader> downloader;
     std::optional<Cacher> cacher;
     std::function<std::optional<std::vector<std::byte>>()> fetch;
-    if (opt.cache) {
-        std::filesystem::path cache_path = get_cache_directory() / fmt::format("{}wiktionary_{}.tgz", language, dump_date);
+    if (cache) {
+        std::filesystem::path cache_path = get_cache_directory() / fmt::format("{}_{}.tgz", language_spec.code, dump_date);
         cached_file = try_load_cache(cache_path);
         if (cached_file) {
             fetch = [&cached_file]() -> std::optional<std::vector<std::byte>> {
@@ -97,13 +123,8 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     GzipDecompressor unzip;
     TarCat tarcat;
     std::vector<std::byte> partial_line;
-    dict::Writer dict{opt.dictionary};
+    dict::Writer dict{path};
 
-    boost::regex re_lang{R"(<h2 id="Français".*?(?=<h2 |\z))"};
-    boost::regex re_forms{R"(<h3 id="(?:)"
-                          "Adjectif|Adverbe|Conjonction|Interjection|Locution|Nom_commun|Onomatopée|(?:Pré|Post)position|Proverbe|Verbe"
-                          R"().*?>(?:<.*?>)*(.+?)<.*?(?=<h\d+ |\z))"};
-    boost::regex re_definitions{R"(<li\b.*?>(.*?)(?:\n<ul\b.*?</ul>)?</li>)"};
     boost::regex re_tag{"<.*?>"};
 
     size_t total_words = 0;
@@ -153,7 +174,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                            })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
                                            tbb::filter_mode::parallel,
-                                           [&re_lang, &re_forms, &re_definitions, &re_tag](std::vector<std::byte>&& data) {
+                                           [&language_spec, &re_tag](std::vector<std::byte>&& data) {
                                                std::vector<std::pair<std::string, std::string>> r;
                                                std::string_view remaining{reinterpret_cast<char*>(data.data()), data.size()};
                                                while (!remaining.empty()) {
@@ -171,11 +192,11 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                                    using svregex_iterator = boost::regex_iterator<std::string_view::iterator>;
 
                                                    svmatch lang_section_match;
-                                                   if (!boost::regex_search(html.begin(), html.end(), lang_section_match, re_lang))
+                                                   if (!boost::regex_search(html.begin(), html.end(), lang_section_match, language_spec.re_language))
                                                        continue;
                                                    std::string_view lang_html{lang_section_match[0].begin(), lang_section_match[0].end()};
 
-                                                   ranges::subrange forms{svregex_iterator{lang_html.begin(), lang_html.end(), re_forms},
+                                                   ranges::subrange forms{svregex_iterator{lang_html.begin(), lang_html.end(), language_spec.re_form},
                                                                           svregex_iterator{}};
                                                    if (forms.empty())
                                                        continue;
@@ -188,7 +209,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                                        description += form_name;
                                                        description += ":\n";
 
-                                                       ranges::subrange definitions{svregex_iterator{form_html.begin(), form_html.end(), re_definitions},
+                                                       ranges::subrange definitions{svregex_iterator{form_html.begin(), form_html.end(), language_spec.re_definition},
                                                                                     svregex_iterator{}};
                                                        for (const svmatch& definition_match : definitions) {
                                                            std::string_view definition_html{definition_match[1].begin(), definition_match[1].end()};

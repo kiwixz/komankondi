@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source: [enwiktionary, frwiktionary]
+        source: [English, French]
     runs-on: ubuntu-latest
     container: "debian:bookworm"
     steps:
@@ -23,8 +23,7 @@ jobs:
       run: |
         apt-get update
         apt-get -y install cmake g++ git ninja-build python3 qt6-declarative-dev  \
-          `#vcpkg:` curl make pkg-config zip  \
-          zstd
+          `#vcpkg:` curl make pkg-config zip
     - name: checkout
       uses: actions/checkout@v4
       with:
@@ -37,10 +36,8 @@ jobs:
       run: ninja -C build dictgen
     - name: dictgen
       run: build/komankondi-dictgen -o ${{matrix.source}}.dict ${{matrix.source}}
-    - name: compress dict
-      run: zstd -T0 ${{matrix.source}}.dict
     - name: upload dict
       uses: actions/upload-artifact@v3
       with:
         name: ${{matrix.source}}
-        path: ${{matrix.source}}.dict.zst
+        path: ${{matrix.source}}.dict
