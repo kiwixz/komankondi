@@ -99,6 +99,13 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
     std::vector<std::byte> partial_line;
     dict::Writer dict{opt.dictionary};
 
+    boost::regex re_lang{R"(<h2 id="Français".*?(?=<h2 |\z))"};
+    boost::regex re_forms{R"(<h3 id="(?:)"
+                          "Adjectif|Adverbe|Conjonction|Interjection|Locution|Nom_commun|Onomatopée|(?:Pré|Post)position|Proverbe|Verbe"
+                          R"().*?>(?:<.*?>)*(.+?)<.*?(?=<h\d+ |\z))"};
+    boost::regex re_definitions{R"(<li\b.*?>(.*?)(?:\n<ul\b.*?</ul>)?</li>)"};
+    boost::regex re_tag{"<.*?>"};
+
     size_t total_words = 0;
     std::chrono::steady_clock::time_point last_stat_time = std::chrono::steady_clock::now();
     size_t last_stat_bytes = 0;
@@ -146,7 +153,7 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                            })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
                                            tbb::filter_mode::parallel,
-                                           [](std::vector<std::byte>&& data) {
+                                           [&re_lang, &re_forms, &re_definitions, &re_tag](std::vector<std::byte>&& data) {
                                                std::vector<std::pair<std::string, std::string>> r;
                                                std::string_view remaining{reinterpret_cast<char*>(data.data()), data.size()};
                                                while (!remaining.empty()) {
@@ -158,7 +165,45 @@ void dictgen_wiktionary(std::string_view language, const Options& opt) {
                                                    std::string_view word = json.at("name").as_string();
                                                    std::string_view html = json.at("article_body").at("html").as_string();
 
-                                                   r.emplace_back(word, html);
+                                                   log::trace("Parsing {}", word);
+
+                                                   using svmatch = boost::match_results<std::string_view::iterator>;
+                                                   using svregex_iterator = boost::regex_iterator<std::string_view::iterator>;
+
+                                                   svmatch lang_section_match;
+                                                   if (!boost::regex_search(html.begin(), html.end(), lang_section_match, re_lang))
+                                                       continue;
+                                                   std::string_view lang_html{lang_section_match[0].begin(), lang_section_match[0].end()};
+
+                                                   ranges::subrange forms{svregex_iterator{lang_html.begin(), lang_html.end(), re_forms},
+                                                                          svregex_iterator{}};
+                                                   if (forms.empty())
+                                                       continue;
+
+                                                   std::string description;
+                                                   for (const svmatch& form_match : forms) {
+                                                       std::string_view form_name{form_match[1].begin(), form_match[1].end()};
+                                                       std::string_view form_html{form_match[0].begin(), form_match[0].end()};
+
+                                                       description += form_name;
+                                                       description += ":\n";
+
+                                                       ranges::subrange definitions{svregex_iterator{form_html.begin(), form_html.end(), re_definitions},
+                                                                                    svregex_iterator{}};
+                                                       for (const svmatch& definition_match : definitions) {
+                                                           std::string_view definition_html{definition_match[1].begin(), definition_match[1].end()};
+
+                                                           std::string definition_text = boost::regex_replace(std::string{definition_html}, re_tag, "");
+
+                                                           description += "- ";
+                                                           description += definition_text;
+                                                           description += "\n";
+                                                       }
+
+                                                       description += "\n";
+                                                   }
+
+                                                   r.emplace_back(word, description);
                                                }
                                                return r;
                                            })
