@@ -118,8 +118,6 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
     }
 
 
-    std::atomic<size_t> total_bytes = 0;
-
     GzipDecompressor unzip;
     TarCat tarcat;
     std::vector<std::byte> partial_line;
@@ -127,15 +125,18 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
 
     boost::regex re_tag{"<.*?>"};
 
+    std::atomic<size_t> total_bytes = 0;
+    std::atomic<size_t> total_bytes_json = 0;
     size_t total_words = 0;
     std::chrono::steady_clock::time_point last_stat_time = std::chrono::steady_clock::now();
     size_t last_stat_bytes = 0;
+    size_t last_stat_bytes_json = 0;
     size_t last_stat_words = 0;
 
     tbb::parallel_pipeline(default_parallel_queue_size(),
                            tbb::make_filter<void, std::vector<std::byte>>(
                                    tbb::filter_mode::serial_in_order,
-                                   [&total_bytes, &fetch](tbb::flow_control& fc) {
+                                   [&fetch](tbb::flow_control& fc) {
                                        std::optional<std::vector<std::byte>> data;
                                        if (!terminating())
                                            data = fetch();
@@ -143,12 +144,12 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
                                            fc.stop();
                                            return std::vector<std::byte>{};
                                        }
-                                       total_bytes.fetch_add(data->size(), std::memory_order::relaxed);
                                        return std::move(*data);
                                    })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
                                            tbb::filter_mode::serial_in_order,
-                                           [&unzip](std::vector<std::byte>&& data) {
+                                           [&unzip, &total_bytes](std::vector<std::byte>&& data) {
+                                               total_bytes.fetch_add(data.size(), std::memory_order::relaxed);
                                                std::vector<std::byte> r = unzip(data);
                                                while (true) {
                                                    std::vector<std::byte> more = unzip();
@@ -174,7 +175,8 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
                                            })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::pair<std::string, std::string>>>(
                                            tbb::filter_mode::parallel,
-                                           [&language_spec, &re_tag](std::vector<std::byte>&& data) {
+                                           [&language_spec, &re_tag, &total_bytes_json](std::vector<std::byte>&& data) {
+                                               total_bytes_json.fetch_add(data.size(), std::memory_order::relaxed);
                                                std::vector<std::pair<std::string, std::string>> r;
                                                std::string_view remaining{reinterpret_cast<char*>(data.data()), data.size()};
                                                while (!remaining.empty()) {
@@ -230,7 +232,9 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
                                            })
                                    & tbb::make_filter<std::vector<std::pair<std::string, std::string>>, void>(
                                            tbb::filter_mode::serial_out_of_order,
-                                           [&total_words, &total_bytes, &last_stat_time, &last_stat_bytes, &last_stat_words, &dict](
+                                           [&dict,
+                                            &total_bytes, &total_bytes_json, &total_words,
+                                            &last_stat_time, &last_stat_bytes, &last_stat_bytes_json, &last_stat_words](
                                                    const std::vector<std::pair<std::string, std::string>>& words) {
                                                for (const auto& [word, description] : words) {
                                                    ++total_words;
@@ -246,12 +250,15 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
                                                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                                                    if (now > last_stat_time + std::chrono::seconds{2}) {
                                                        size_t total_bytes_now = total_bytes.load(std::memory_order::relaxed);
+                                                       size_t total_bytes_json_now = total_bytes_json.load(std::memory_order::relaxed);
                                                        double delta = std::chrono::duration<double>(now - last_stat_time).count();
-                                                       log::info("{} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
+                                                       log::info("{} KiB ({:.0f}/s) -> {} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
                                                                  total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
+                                                                 total_bytes_json_now / 1024, (total_bytes_json_now - last_stat_bytes_json) / delta / 1024,
                                                                  total_words, (total_words - last_stat_words) / delta);
                                                        last_stat_time = now;
                                                        last_stat_bytes = total_bytes_now;
+                                                       last_stat_bytes_json = total_bytes_json_now;
                                                        last_stat_words = total_words;
                                                    }
                                                }
