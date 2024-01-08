@@ -6,6 +6,7 @@ import difflib
 import functools
 import math
 import multiprocessing
+import os
 import shutil
 import subprocess
 import sys
@@ -79,6 +80,14 @@ class Formatter(Linter):
         return "".join(f"{colorize(line)}\n" for line in patch)
 
 
+def parallelism():
+    try:
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
+        pass
+    return multiprocessing.cpu_count()
+
+
 def print_error(msg: str):
     print(f"\033[31;1m{msg}\033[0m")
 
@@ -134,7 +143,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--fix", "-f", action="store_true", help="attempt to fix the problems")
-    parser.add_argument("--threads", "-j", type=int, default=multiprocessing.cpu_count(), help="number of threads")
+    parser.add_argument("--threads", "-j", type=int, default=parallelism(), help="number of threads")
     parser.add_argument("tasks", nargs="*", choices=(*tasks, []), default=[], help="tasks to run")
     args = parser.parse_args()
 
