@@ -133,10 +133,6 @@ jobs:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
-    - name: setup python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
     - name: install
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"

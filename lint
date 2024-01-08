@@ -12,7 +12,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 LLVM_VERSION = 16
 
@@ -22,8 +22,8 @@ class Linter:
         self,
         files: List[str],
         cmd: List[str],
-        check_params: List[str] | None = None,
-        fix_params: List[str] | None = None,
+        check_params: Optional[List[str]] = None,
+        fix_params: Optional[List[str]] = None,
     ):
         self.files = files
         self.cmd = cmd
