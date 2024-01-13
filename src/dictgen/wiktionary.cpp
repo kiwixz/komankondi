@@ -81,7 +81,8 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
     std::string dump_date = ranges::max(dump_dates);
     log::info("Using latest dump from {}", dump_date);
 
-    std::string dump_url = fmt::format("/other/enterprise_html/runs/20240101/{}wiktionary-NS0-{}-ENTERPRISE-HTML.json.tar.gz", language_spec.code, dump_date);
+    std::string dump_url = fmt::format("/other/enterprise_html/runs/{}/{}wiktionary-NS0-{}-ENTERPRISE-HTML.json.tar.gz",
+                                       dump_date, language_spec.code, dump_date);
 
     std::optional<File> cached_file;
     std::optional<Downloader> downloader;
