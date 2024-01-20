@@ -238,10 +238,9 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
                                             &last_stat_time, &last_stat_bytes, &last_stat_bytes_json, &last_stat_words](
                                                    const std::vector<std::pair<std::string, std::string>>& words) {
                                                for (const auto& [word, description] : words) {
-                                                   ++total_words;
-
                                                    try {
                                                        dict.add_word(word, description);
+                                                       ++total_words;
                                                    }
                                                    catch (const std::exception& ex) {
                                                        // dumps currently have duplicates: https://phabricator.wikimedia.org/T305407
