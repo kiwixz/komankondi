@@ -246,21 +246,21 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
                                                        // dumps currently have duplicates: https://phabricator.wikimedia.org/T305407
                                                        log::debug("Could not add word {}: {}", word, ex.what());
                                                    }
+                                               }
 
-                                                   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-                                                   if (now > last_stat_time + std::chrono::seconds{2}) {
-                                                       size_t total_bytes_now = total_bytes.load(std::memory_order::relaxed);
-                                                       size_t total_bytes_json_now = total_bytes_json.load(std::memory_order::relaxed);
-                                                       double delta = std::chrono::duration<double>(now - last_stat_time).count();
-                                                       log::info("{} KiB ({:.0f}/s) -> {} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
-                                                                 total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
-                                                                 total_bytes_json_now / 1024, (total_bytes_json_now - last_stat_bytes_json) / delta / 1024,
-                                                                 total_words, (total_words - last_stat_words) / delta);
-                                                       last_stat_time = now;
-                                                       last_stat_bytes = total_bytes_now;
-                                                       last_stat_bytes_json = total_bytes_json_now;
-                                                       last_stat_words = total_words;
-                                                   }
+                                               std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                                               if (now > last_stat_time + std::chrono::seconds{2}) {
+                                                   size_t total_bytes_now = total_bytes.load(std::memory_order::relaxed);
+                                                   size_t total_bytes_json_now = total_bytes_json.load(std::memory_order::relaxed);
+                                                   double delta = std::chrono::duration<double>(now - last_stat_time).count();
+                                                   log::info("{} KiB ({:.0f}/s) -> {} KiB ({:.0f}/s) -> {} words ({:.0f}/s)",
+                                                             total_bytes_now / 1024, (total_bytes_now - last_stat_bytes) / delta / 1024,
+                                                             total_bytes_json_now / 1024, (total_bytes_json_now - last_stat_bytes_json) / delta / 1024,
+                                                             total_words, (total_words - last_stat_words) / delta);
+                                                   last_stat_time = now;
+                                                   last_stat_bytes = total_bytes_now;
+                                                   last_stat_bytes_json = total_bytes_json_now;
+                                                   last_stat_words = total_words;
                                                }
                                            }));
     if (terminating())
