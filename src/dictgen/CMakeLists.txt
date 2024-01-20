@@ -13,7 +13,7 @@ add_library(dictgen_
     "wiktionary.cpp"
 )
 target_link_libraries(dictgen_
-    Boost::json Boost::regex
+    Boost::boost Boost::json Boost::regex
     fmt::fmt
     httplib::httplib
     range-v3::range-v3

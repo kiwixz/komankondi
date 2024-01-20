@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <optional>
 
+#include <boost/interprocess/sync/file_lock.hpp>
+
 #include "utils/file.hpp"
 
 namespace komankondi::dictgen {
@@ -26,6 +28,7 @@ private:
     std::filesystem::path path_;
     std::filesystem::path tmp_path_;
     std::optional<File> tmp_file_;
+    boost::interprocess::file_lock tmp_lock_;
 };
 
 

@@ -5,6 +5,7 @@
     },
     "dependencies": [
         "catch2",
+        "boost-interprocess",
         "boost-json",
         "boost-regex",
         "cli11",
