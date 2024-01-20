@@ -56,6 +56,10 @@ File::File(const std::filesystem::path& path, Mode mode) {
         throw SystemException{"Could not open file '{}'", path.string()};
 }
 
+File::operator bool() const {
+    return static_cast<bool>(stream_);
+}
+
 bool File::eof() const {
     return std::feof(stream_.get());
 }

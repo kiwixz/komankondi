@@ -14,8 +14,8 @@ struct Downloader {
     ~Downloader();
     Downloader(const Downloader&) = delete;
     Downloader& operator=(const Downloader&) = delete;
-    Downloader(Downloader&&) = delete;
-    Downloader& operator=(Downloader&&) = delete;
+    Downloader(Downloader&&) noexcept = delete;
+    Downloader& operator=(Downloader&&) noexcept = delete;
 
     std::optional<std::vector<std::byte>> read();
 

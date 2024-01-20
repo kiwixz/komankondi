@@ -41,7 +41,7 @@ Cacher::~Cacher() {
     if (!tmp_file_)
         return;
     tmp_lock_ = {};
-    tmp_file_.reset();
+    tmp_file_ = {};
     try {
         std::filesystem::remove(tmp_path_);
     }
@@ -51,10 +51,10 @@ Cacher::~Cacher() {
 }
 
 void Cacher::save() {
-    tmp_file_->sync();
+    tmp_file_.sync();
     std::filesystem::rename(tmp_path_, path_);
     tmp_lock_ = {};
-    tmp_file_.reset();
+    tmp_file_ = {};
     log::info("Successfully saved cache");
 }
 

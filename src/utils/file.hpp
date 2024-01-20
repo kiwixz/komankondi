@@ -31,8 +31,11 @@ struct File {
         binary = 1 << 4,
     };
 
+    File() = default;
     File(ZStringView path, Mode mode);
     File(const std::filesystem::path& path, Mode mode);
+
+    explicit operator bool() const;
 
     bool eof() const;
 

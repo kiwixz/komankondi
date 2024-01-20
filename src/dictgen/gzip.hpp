@@ -14,8 +14,8 @@ struct GzipDecompressor {
     ~GzipDecompressor();
     GzipDecompressor(const GzipDecompressor&) = delete;
     GzipDecompressor& operator=(const GzipDecompressor&) = delete;
-    GzipDecompressor(GzipDecompressor&&) = delete;
-    GzipDecompressor& operator=(GzipDecompressor&&) = delete;
+    GzipDecompressor(GzipDecompressor&&) noexcept = delete;
+    GzipDecompressor& operator=(GzipDecompressor&&) noexcept = delete;
 
     bool finished() const;
     bool in_stream() const;

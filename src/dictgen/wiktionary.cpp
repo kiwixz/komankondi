@@ -86,28 +86,28 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
 
     std::optional<File> cached_file;
     std::optional<Downloader> downloader;
-    std::optional<Cacher> cacher;
+    Cacher cacher;
     std::function<std::optional<std::vector<std::byte>>()> fetch;
     if (cache) {
         std::filesystem::path cache_path = get_cache_directory() / fmt::format("{}_{}.tgz", language_spec.code, dump_date);
         cached_file = try_load_cache(cache_path);
         if (cached_file) {
-            fetch = [&cached_file]() -> std::optional<std::vector<std::byte>> {
-                if (cached_file->eof())
+            fetch = [&cached_file = *cached_file]() -> std::optional<std::vector<std::byte>> {
+                if (cached_file.eof())
                     return {};
-                return cached_file->read();
+                return cached_file.read();
             };
         }
         else {
             downloader.emplace(host, dump_url);
-            cacher.emplace(cache_path);
+            cacher = {cache_path};
             fetch = [&downloader, &cacher] {
                 std::optional<std::vector<std::byte>> r = downloader->read();
                 if (r) {
-                    cacher->write<std::byte>(*r);
+                    cacher.write<std::byte>(*r);
                 }
                 else {
-                    cacher->save();
+                    cacher.save();
                 }
                 return r;
             };
