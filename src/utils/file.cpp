@@ -48,6 +48,8 @@ File::File(ZStringView path, Mode mode) {
     stream_.reset(std::fopen(path.data(), compute_mode(mode).c_str()));
     if (!stream_)
         throw SystemException{"Could not open file '{}'", path};
+    if (std::setvbuf(stream_.get(), nullptr, _IOFBF, default_buffer_size))
+        throw SystemException{"Could not set file buffer '{}'", path};
 }
 
 File::File(const std::filesystem::path& path, Mode mode) {
