@@ -151,14 +151,7 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
                                            tbb::filter_mode::serial_in_order,
                                            [&unzip, &total_bytes](std::vector<std::byte>&& data) {
                                                total_bytes.fetch_add(data.size(), std::memory_order::relaxed);
-                                               std::vector<std::byte> r = unzip(data);
-                                               while (true) {
-                                                   std::vector<std::byte> more = unzip();
-                                                   if (more.empty())
-                                                       break;
-                                                   r.insert(r.end(), more.begin(), more.end());
-                                               }
-                                               return r;
+                                               return unzip(data);
                                            })
                                    & tbb::make_filter<std::vector<std::byte>, std::vector<std::byte>>(
                                            tbb::filter_mode::serial_in_order,

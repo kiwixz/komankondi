@@ -5,8 +5,6 @@
 
 #include <zlib.h>
 
-#include "utils/buffer.hpp"
-
 namespace komankondi::dictgen {
 
 struct GzipDecompressor {
@@ -18,14 +16,13 @@ struct GzipDecompressor {
     GzipDecompressor& operator=(GzipDecompressor&&) noexcept = delete;
 
     bool finished() const;
-    bool in_stream() const;
 
-    std::vector<std::byte> operator()(std::span<const std::byte> data = {});
+    std::vector<std::byte> operator()(std::span<const std::byte> data);
+    void operator()(std::span<const std::byte> data, std::vector<std::byte>& out);
 
 private:
     bool running_ = false;
-    Buffer<std::byte> buf_;
-    z_stream stream_;
+    z_stream stream_{};
 };
 
 }  // namespace komankondi::dictgen
