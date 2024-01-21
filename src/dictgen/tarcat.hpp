@@ -3,8 +3,6 @@
 #include <span>
 #include <vector>
 
-#include "utils/buffer.hpp"
-
 namespace komankondi::dictgen {
 
 struct TarCat {
@@ -17,7 +15,7 @@ struct TarCat {
 private:
     int remaining_ = 0;
     int padding_ = 0;
-    Buffer<std::byte> buf_;
+    std::vector<std::byte> buf_;
 };
 
 }  // namespace komankondi::dictgen

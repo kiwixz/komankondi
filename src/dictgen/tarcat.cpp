@@ -47,14 +47,14 @@ void TarCat::operator()(std::span<const std::byte> data, std::vector<std::byte>&
         padding_ = 0;
 
         if (buf_.size() + unparsed_size < tar_block_size) {
-            buf_.push(std::span{data}.subspan(offset));
+            buf_.insert(buf_.end(), data.begin() + offset, data.end());
             break;
         }
         int header_size_in_data = tar_block_size - buf_.size();
         std::span<const std::byte> header = [&]() -> std::span<const std::byte> {
             if (buf_.empty())
                 return data.subspan(offset, tar_block_size);
-            buf_.push(data.subspan(offset, header_size_in_data));
+            buf_.insert(buf_.end(), data.begin() + offset, data.begin() + offset + header_size_in_data);
             return buf_;
         }();
 
@@ -101,14 +101,14 @@ void TarCat::inplace(std::vector<std::byte>& data) {
         padding_ = 0;
 
         if (buf_.size() + unparsed_size < tar_block_size) {
-            buf_.push(std::span{data}.subspan(offset));
+            buf_.insert(buf_.end(), data.begin() + offset, data.end());
             break;
         }
         int header_size_in_data = tar_block_size - buf_.size();
         std::span<const std::byte> header = [&]() {
             if (buf_.empty())
                 return std::span{data}.subspan(offset, tar_block_size);
-            buf_.push(std::span{data}.subspan(offset, header_size_in_data));
+            buf_.insert(buf_.end(), data.begin() + offset, data.begin() + offset + header_size_in_data);
             return std::span{buf_};
         }();
 
