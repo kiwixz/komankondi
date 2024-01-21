@@ -4,6 +4,8 @@
 
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <strong_type/regular.hpp>
+#include <strong_type/type.hpp>
 
 namespace komankondi::log {
 
@@ -55,6 +57,9 @@ bool dev(fmt::format_string<Args...> fmt, Args&&... args) {
 }
 
 
+using Bytes = strong::type<size_t, struct Size_, strong::regular>;
+
+
 struct Hexdump {
     std::span<const std::byte> data;
 
@@ -68,12 +73,24 @@ struct Hexdump {
 
 
 template <>
-struct fmt::formatter<komankondi::log::Hexdump> {
-    fmt::appender format(const komankondi::log::Hexdump& a, format_context& ctx) const;
+struct fmt::formatter<komankondi::log::Bytes> {
+    appender format(komankondi::log::Bytes a, format_context& ctx) const;
 
     constexpr const char* parse(const format_parse_context& ctx) {
         if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-            throw fmt::format_error{"Invalid format"};
+            throw format_error{"Invalid format specifier"};
+        return ctx.begin();
+    }
+};
+
+
+template <>
+struct fmt::formatter<komankondi::log::Hexdump> {
+    appender format(const komankondi::log::Hexdump& a, format_context& ctx) const;
+
+    constexpr const char* parse(const format_parse_context& ctx) {
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+            throw format_error{"Invalid format specifier"};
         return ctx.begin();
     }
 };

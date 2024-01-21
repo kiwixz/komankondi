@@ -3,6 +3,7 @@ find_package(fmt REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(SQLite3 REQUIRED)
+find_package(strong_type REQUIRED)
 
 add_library(utils
     "cli.cpp"
@@ -25,6 +26,7 @@ target_link_libraries(utils
     OpenSSL::Crypto
     range-v3::range-v3
     SQLite::SQLite3
+    strong_type::strong_type
 )
 
 if (BUILD_TESTING)

@@ -1,6 +1,9 @@
 #include "log.hpp"
 
+#include <array>
 #include <cstdio>
+#include <span>
+#include <string_view>
 
 #include <fmt/color.h>
 #include <fmt/core.h>
@@ -89,6 +92,27 @@ bool vlog(Level level, fmt::string_view fmt, const fmt::format_args& args) {
 }
 
 }  // namespace komankondi::log
+
+
+fmt::appender fmt::formatter<komankondi::log::Bytes>::format(komankondi::log::Bytes a, format_context& ctx) const {
+    size_t size = a.value_of();
+
+    if (size < 1024) {
+        fmt::format_to(ctx.out(), "{} B", size);
+        return ctx.out();
+    }
+
+    size_t unit = 1;
+    int power = 0;
+    while (size / unit >= 1024) {
+        unit *= 1024;
+        ++power;
+    }
+
+    constexpr std::array unit_prefix = {'K', 'M', 'G', 'T', 'P', 'E'};
+    fmt::format_to(ctx.out(), "{:.2f} {}iB", static_cast<double>(size) / unit, unit_prefix[power - 1]);
+    return ctx.out();
+}
 
 
 fmt::appender fmt::formatter<komankondi::log::Hexdump>::format(const komankondi::log::Hexdump& a, format_context& ctx) const {
