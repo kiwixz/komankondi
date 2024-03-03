@@ -25,7 +25,7 @@ void TarCat::operator()(std::span<const std::byte> data, std::vector<std::byte>&
     out.reserve(out.size() + data.size());
 
     int offset = 0;
-    while (offset < data.size()) {
+    while (offset < std::ssize(data)) {
         int unparsed_size = data.size() - offset;
 
         if (unparsed_size <= remaining_) {
@@ -74,7 +74,7 @@ void TarCat::inplace(std::vector<std::byte>& data) {
 
     int content_size = 0;
     int offset = 0;
-    while (offset < data.size()) {
+    while (offset < std::ssize(data)) {
         int unparsed_size = data.size() - offset;
 
         if (unparsed_size <= remaining_) {

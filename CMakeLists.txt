@@ -4,7 +4,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/.gitignore" "*")
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Release, RelWithDebInfo, Debug or None")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "")
 
-set(cxx_flags_base "-march=x86-64-v3 -fno-plt")
+set(cxx_flags_base "-Wall -Wextra -Wpedantic -march=x86-64-v3")
 set(cxx_flags_harden "-fstack-protector-strong -D_GLIBCXX_ASSERTIONS -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
 if (NOT WIN32)
     set(cxx_flags_sanitize "-fsanitize=address,undefined")
@@ -42,13 +42,13 @@ foreach (warning IN ITEMS
     "duplicated-branches" "duplicated-cond" "logical-op"
     "format=2"
     "mismatched-tags" "redundant-tags"
-    "missing-declarations"
-    "null-dereference"
+    # "missing-declarations"
+    # "null-dereference"
     "unused-macros"
 )
-    string(REPLACE "=" "_" var "has_warning_${warning}")
-    check_cxx_compiler_flag("-W${warning}" "${var}")
-    if ("${var}")
+    string(REGEX REPLACE "[^a-z0-9]" "_" var "has_warning_${warning}")
+    check_cxx_compiler_flag("-W${warning}" ${var})
+    if (${var})
         add_compile_options("-W${warning}")
     endif ()
 endforeach ()

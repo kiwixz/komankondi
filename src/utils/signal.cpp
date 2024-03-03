@@ -1,3 +1,5 @@
+#include "utils/signal.hpp"
+
 #include <atomic>
 #include <csignal>
 
