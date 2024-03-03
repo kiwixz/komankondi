@@ -11,7 +11,7 @@ jobs:
     container: "debian:bookworm"
     steps:
     - name: setup
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
@@ -37,10 +37,11 @@ jobs:
     - name: dist
       run: ./dist
     - name: upload dist
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: debian-${{matrix.buildtype}}
         path: build/komankondi.tar.xz
+        compression-level: 0
 
   lint_linux:
     strategy:
@@ -51,7 +52,7 @@ jobs:
     container: "debian:bookworm"
     steps:
     - name: setup
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
@@ -87,7 +88,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: setup
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
@@ -115,10 +116,11 @@ jobs:
     - name: dist
       run: python dist
     - name: upload dist
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-${{matrix.buildtype}}
         path: build/komankondi.zip
+        compression-level: 0
 
   lint_windows:
     strategy:
@@ -128,7 +130,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: setup
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
