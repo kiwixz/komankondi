@@ -1,11 +1,9 @@
 find_package(fmt REQUIRED)
 
-add_library(game
-    "game.cpp"
-    "profile.cpp"
-)
+file(GLOB_RECURSE src "*.cpp")
+add_library(game ${src})
 add_library(komankondi::game ALIAS game)
-target_link_libraries(game
+target_link_libraries(game PUBLIC
     fmt::fmt
 
     komankondi::dict

@@ -2,10 +2,9 @@ find_package(fmt REQUIRED)
 find_package(Qt6 REQUIRED Quick)
 find_package(range-v3 REQUIRED)
 
-add_library(ui_ STATIC
-    "context.cpp"
-    "context.hpp"
-)
+file(GLOB_RECURSE src "*.cpp")
+list(REMOVE_ITEM src "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+add_library(ui_ STATIC ${src})
 set_target_properties(ui_ PROPERTIES AUTOMOC ON)
 target_link_libraries(ui_ PUBLIC
     fmt::fmt
@@ -26,5 +25,5 @@ qt_add_qml_module(ui_
 
 add_executable(ui "main.cpp")
 set_target_properties(ui PROPERTIES OUTPUT_NAME "komankondi")
-target_link_libraries(ui ui_ ui_plugin)
+target_link_libraries(ui PRIVATE ui_ ui_plugin)
 install(TARGETS ui)

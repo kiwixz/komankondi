@@ -5,22 +5,10 @@ find_package(range-v3 REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(strong_type REQUIRED)
 
-add_library(utils
-    "cli.cpp"
-    "config.cpp"
-    "database.cpp"
-    "file.cpp"
-    "hasher.cpp"
-    "hex.cpp"
-    "iequal.cpp"
-    "log.cpp"
-    "path.cpp"
-    "platform.cpp"
-    "signal.cpp"
-    "zstring_view.cpp"
-)
+file(GLOB_RECURSE src "*.cpp")
+add_library(utils ${src})
 add_library(komankondi::utils ALIAS utils)
-target_link_libraries(utils
+target_link_libraries(utils PUBLIC
     CLI11::CLI11
     fmt::fmt
     OpenSSL::Crypto
@@ -28,15 +16,3 @@ target_link_libraries(utils
     SQLite::SQLite3
     strong_type::strong_type
 )
-
-if (BUILD_TESTING)
-    find_package(Catch2 REQUIRED)
-    add_executable(test_utils
-        "test/hasher.cpp"
-        "test/log.cpp"
-        "test/scope_exit.cpp"
-        "test/zstring_view.cpp"
-    )
-    target_link_libraries(test_utils utils Catch2::Catch2WithMain)
-    add_test(NAME utils COMMAND test_utils)
-endif ()

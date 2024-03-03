@@ -63,3 +63,5 @@ add_subdirectory("src/game")
 
 add_subdirectory("src/dictgen")
 add_subdirectory("src/ui")
+
+add_subdirectory("test")

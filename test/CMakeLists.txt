@@ -1,0 +1,22 @@
+if (NOT BUILD_TESTING)
+    return()
+endif ()
+
+find_package(Catch2 REQUIRED)
+
+file(GLOB libs LIST_DIRECTORIES ON RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*")
+foreach (lib IN LISTS libs)
+    if (TARGET "${lib}_")
+        set(target "${lib}_")
+    else ()
+        set(target "${lib}")
+    endif ()
+
+    file(GLOB_RECURSE src "${lib}/*.cpp")
+    foreach (file IN LISTS src)
+        cmake_path(GET file STEM name)
+        add_executable("test_${lib}_${name}" ${file})
+        target_link_libraries("test_${lib}_${name}" ${target} Catch2::Catch2WithMain)
+        add_test(NAME "${lib}_${name}" COMMAND "test_${lib}_${name}" "--allow-running-no-tests")
+    endforeach ()
+endforeach ()
