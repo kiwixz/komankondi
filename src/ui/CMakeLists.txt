@@ -23,7 +23,7 @@ qt_add_qml_module(ui_
         "main.qml"
 )
 
-add_executable(ui "main.cpp")
+add_executable(ui WIN32 "main.cpp")
 set_target_properties(ui PROPERTIES OUTPUT_NAME "komankondi")
 target_link_libraries(ui PRIVATE ui_ ui_plugin)
 install(TARGETS ui)
