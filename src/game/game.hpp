@@ -6,7 +6,6 @@
 #include "dict/reader.hpp"
 #include "dict/word.hpp"
 #include "game/profile.hpp"
-#include "utils/path.hpp"
 
 namespace komankondi::game {
 
@@ -20,7 +19,7 @@ struct Game {
 
 private:
     Profile profile_;
-    dict::Reader dict_{make_zstring_view(get_data_directory() / fmt::format("{}.dict", profile_.dictionary()))};
+    dict::Reader dict_;
     dict::Word solution_;
 };
 

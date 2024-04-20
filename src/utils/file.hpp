@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cassert>
 #include <cstdio>
-#include <filesystem>
 #include <memory>
 #include <span>
-#include <string>
 #include <vector>
 
 #include "utils/config.hpp"
@@ -33,7 +30,6 @@ struct File {
 
     File() = default;
     File(ZStringView path, Mode mode);
-    File(const std::filesystem::path& path, Mode mode);
 
     explicit operator bool() const;
 

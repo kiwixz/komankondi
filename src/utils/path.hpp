@@ -1,10 +1,10 @@
 #pragma once
 
-#include <filesystem>
+#include <string>
 
 namespace komankondi {
 
-std::filesystem::path get_cache_directory();
-std::filesystem::path get_data_directory();
+std::string get_cache_directory();
+std::string get_data_directory();
 
 }  // namespace komankondi

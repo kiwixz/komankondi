@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
         Cli cli;
         bool cache = true;
         cli.add_flag("--cache,!--no-cache", cache, "Cache downloaded data");
-        std::string dictionary = (get_data_directory() / "<language>.dict").string();
+        std::string dictionary = fmt::format("{}/<language>.dict", get_data_directory());
         cli.add_option("-o,--dictionary", dictionary, "Path to the dictionary");
 
         std::string language;

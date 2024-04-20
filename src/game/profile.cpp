@@ -9,7 +9,7 @@
 namespace komankondi::game {
 
 Profile::Profile() :
-        db_{make_zstring_view(get_data_directory() / "profile"), false} {
+        db_{fmt::format("{}/profile", get_data_directory()), false} {
     db_.exec("PRAGMA application_id=0x6b6d6b64;"
              "PRAGMA user_version=1;"
              "CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY NOT NULL, value NOT NULL)");

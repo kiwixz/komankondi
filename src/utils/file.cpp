@@ -52,12 +52,6 @@ File::File(ZStringView path, Mode mode) {
         throw SystemException{"Could not set file buffer '{}'", path};
 }
 
-File::File(const std::filesystem::path& path, Mode mode) {
-    stream_.reset(fopen(path, compute_mode(mode)));
-    if (!stream_)
-        throw SystemException{"Could not open file '{}'", path.string()};
-}
-
 File::operator bool() const {
     return static_cast<bool>(stream_);
 }

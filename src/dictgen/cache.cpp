@@ -13,7 +13,7 @@
 
 namespace komankondi::dictgen {
 
-Cacher::Cacher(std::filesystem::path path) :
+Cacher::Cacher(std::string path) :
         path_{std::move(path)} {
     tmp_path_ = path_;
     tmp_path_ += ".new";
@@ -31,7 +31,7 @@ Cacher::Cacher(std::filesystem::path path) :
         tmp_file_ = {tmp_path_, File::Mode::truncate | File::Mode::binary};
     }
     else {
-        std::filesystem::create_directories(path_.parent_path());
+        std::filesystem::create_directories(std::filesystem::path{path_}.parent_path());
         tmp_file_ = {tmp_path_, File::Mode::write | File::Mode::binary};
         lock();
     }
@@ -59,11 +59,11 @@ void Cacher::save() {
 }
 
 
-std::optional<File> try_load_cache(const std::filesystem::path& path) {
+std::optional<File> try_load_cache(ZStringView path) {
     log::debug("Cache path is {}", path);
 
     try {
-        if (std::filesystem::exists(path)) {
+        if (std::filesystem::exists(path.data())) {
             log::info("Found cache");
             return File{path, File::Mode::read | File::Mode::binary};
         }

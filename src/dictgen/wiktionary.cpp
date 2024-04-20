@@ -89,7 +89,7 @@ void generate_dictionary(ZStringView path, const LanguageSpec& language_spec, bo
     Cacher cacher;
     std::function<std::optional<std::vector<std::byte>>()> fetch;
     if (cache) {
-        std::filesystem::path cache_path = get_cache_directory() / fmt::format("{}_{}.tgz", language_spec.code, dump_date);
+        std::string cache_path = fmt::format("{}/{}_{}.tgz", get_cache_directory(), language_spec.code, dump_date);
         cached_file = try_load_cache(cache_path);
         if (cached_file) {
             fetch = [&cached_file = *cached_file]() -> std::optional<std::vector<std::byte>> {
