@@ -5,6 +5,7 @@
 #include <string_view>
 #include <vector>
 
+#include "utils/math.hpp"
 #include "utils/parse.hpp"
 
 namespace komankondi::dictgen {
@@ -27,12 +28,12 @@ void TarCat::operator()(std::span<const std::byte> data, std::vector<std::byte>&
     int offset = 0;
     while (offset < std::ssize(data)) {
         int unparsed_size = data.size() - offset;
-
         if (unparsed_size <= remaining_) {
             remaining_ -= unparsed_size;
             out.insert(out.end(), data.begin() + offset, data.end());
             break;
         }
+
         out.insert(out.end(), data.begin() + offset, data.begin() + offset + remaining_);
         offset += remaining_;
         unparsed_size -= remaining_;
@@ -60,8 +61,8 @@ void TarCat::operator()(std::span<const std::byte> data, std::vector<std::byte>&
 
         std::string_view file_size{reinterpret_cast<const char*>(header.data()) + 124, 11};
         if (file_size[0] != '\0') {
-            remaining_ = parse<int>(file_size, 8);
-            padding_ = tar_block_size - remaining_ % tar_block_size;
+            remaining_ = parse<int64_t>(file_size, 8);
+            padding_ = ceil(remaining_, tar_block_size) - remaining_;
         }
         buf_.clear();
 
@@ -76,7 +77,6 @@ void TarCat::inplace(std::vector<std::byte>& data) {
     int offset = 0;
     while (offset < std::ssize(data)) {
         int unparsed_size = data.size() - offset;
-
         if (unparsed_size <= remaining_) {
             remaining_ -= unparsed_size;
             if (offset == 0)
@@ -85,6 +85,7 @@ void TarCat::inplace(std::vector<std::byte>& data) {
             content_size += unparsed_size;
             break;
         }
+
         if (offset != 0)
             std::copy_n(data.begin() + offset, remaining_, data.begin() + content_size);
         content_size += remaining_;
@@ -114,8 +115,8 @@ void TarCat::inplace(std::vector<std::byte>& data) {
 
         std::string_view file_size{reinterpret_cast<const char*>(header.data()) + 124, 11};
         if (file_size[0] != '\0') {
-            remaining_ = parse<int>(file_size, 8);
-            padding_ = tar_block_size - remaining_ % tar_block_size;
+            remaining_ = parse<int64_t>(file_size, 8);
+            padding_ = ceil(remaining_, tar_block_size) - remaining_;
         }
         buf_.clear();
 

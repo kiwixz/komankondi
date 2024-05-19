@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <span>
 #include <vector>
 
@@ -13,7 +14,7 @@ struct TarCat {
     void inplace(std::vector<std::byte>& data);
 
 private:
-    int remaining_ = 0;
+    int64_t remaining_ = 0;
     int padding_ = 0;
     std::vector<std::byte> buf_;
 };
