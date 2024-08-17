@@ -1,8 +1,5 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "vcpkg-configuration": {
-        "overlay-ports": [ "vcpkg_ports" ]
-    },
     "dependencies": [
         "catch2",
         "boost-interprocess",

@@ -15,11 +15,10 @@ set(CMAKE_CXX_FLAGS_DEBUG "${cxx_flags_base} ${cxx_flags_harden} ${cxx_flags_san
 
 option(VCPKG "Install dependencies with vcpkg" ON)
 if (VCPKG)
-    if (WIN32)
-        set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "")
-    endif ()
     set(VCPKG_BOOTSTRAP_OPTIONS "-disableMetrics" CACHE STRING "")
     set(VCPKG_INSTALL_OPTIONS "--no-print-usage" CACHE STRING "")
+    set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_ports" CACHE STRING "")
+    set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_triplets" CACHE STRING "")
     set(CMAKE_TOOLCHAIN_FILE "vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE FILEPATH "")
 endif ()
 
