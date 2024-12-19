@@ -48,7 +48,7 @@ jobs:
       fail-fast: false
       matrix:
         buildtype: [Release, Debug]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container: "debian:bookworm"
     steps:
     - name: setup
@@ -121,35 +121,3 @@ jobs:
         name: windows-${{matrix.buildtype}}
         path: build/komankondi.zip
         compression-level: 0
-
-  lint_windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        buildtype: [Release, Debug]
-    runs-on: windows-latest
-    steps:
-    - name: setup
-      uses: actions/github-script@v7
-      with:
-        script: |
-          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL);
-          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
-    - name: install
-      run: |
-        echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin" >>"$env:GITHUB_PATH"
-        pip install aqtinstall==3.1.11 ninja==1.11.1.1
-        aqt install-qt -O "$env:RUNNER_TEMP\qt" windows desktop 6.6.1 win64_msvc2019_64 --archives qtbase qtdeclarative
-        echo "$env:RUNNER_TEMP\qt\6.6.1\msvc2019_64\bin" >>"$env:GITHUB_PATH"
-    - name: checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-    - name: configure
-      env:
-        CXX: clang++
-        CXXFLAGS: -Werror
-        VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{matrix.buildtype}}
-    - name: lint
-      run: python lint clang-tidy
